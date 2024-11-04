@@ -1,0 +1,1 @@
+#Definiert die Star-Klasse, die den Stern und seine Eigenschaften beschreibt.
