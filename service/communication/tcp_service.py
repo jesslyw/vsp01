@@ -9,7 +9,7 @@ def send_tcp_request(method, url, body, type):
     except Exception as e:
         print(e)
 
-
+#move to peer
 def register_component_in_sol(self, sol_ip, sol_tcp, star, sol, com_uuid, ip, port, status):
     sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/"
     # format data as text/plain
