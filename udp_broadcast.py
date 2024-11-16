@@ -5,7 +5,7 @@ import time
 import requests
 import sys
 
-#test
+
 class UdpBroadcast:
     def __init__(self, port, star_uuid, com_uuid, ip, star_port, is_sol):
         self.port = port
