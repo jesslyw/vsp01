@@ -1,0 +1,6 @@
+## done 
+refactor udp/tcp functionality from udp_broadcast into service and communication
+
+## todo 
+refactor control flow from component.py and upd_broadcast.py into model, controller, app 
+docs: add to methods in class_structure.md 
