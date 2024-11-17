@@ -3,9 +3,12 @@ import logging
 class Logger:
     def __init__(self):
         logging.basicConfig(
-            filename='logs/application.log',
             level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('logs/application.log'),  # Log to file
+                logging.StreamHandler()  # Log to console
+            ]
         )
         self.logger = logging.getLogger()
 
@@ -14,6 +17,3 @@ class Logger:
 
     def error(self, message):
         self.logger.error(message)
-
-    #def critical(self, message):
-    #    self.logger.critical(message)

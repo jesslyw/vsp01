@@ -1,4 +1,4 @@
-:::mermaid
+```mermaid
 sequenceDiagram
     autonumber
     participant NewComponent as Neue Komponente
@@ -56,7 +56,8 @@ sequenceDiagram
         SOL-->>-NewComponent: 200 OK oder Fehler (401, 404)
 
         Note over NewComponent: Liste aller Nachrichten anfordern
-        NewComponent->>+SOL: GET /vs/v1/messages (Liste anfordern)
+        NewComponent->>+SOL: GET /vs/v1/messages (Liste anfordern)```
+
         SOL-->>-NewComponent: 200 OK und Nachrichtenliste oder Fehler (401)
 
         Note over NewComponent: Spezifische Nachricht von SOL anfordern
@@ -64,4 +65,4 @@ sequenceDiagram
         SOL-->>-NewComponent: 200 OK und Rückgabe der Nachricht oder Fehler (401, 404)
 
     end
-:::
+```

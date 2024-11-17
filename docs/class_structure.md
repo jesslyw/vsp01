@@ -1,4 +1,4 @@
-:::mermaid
+```mermaid
 classDiagram
     main --> PeerController
     main --> StarController
@@ -66,4 +66,4 @@ classDiagram
     class main{
 
     }
-:::
+```

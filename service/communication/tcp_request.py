@@ -9,7 +9,7 @@ def send_tcp_request(method, url, body, type):
     except Exception as e:
         print(e)
 
-#move to peer
+
 def register_component_in_sol(self, sol_ip, sol_tcp, star, sol, com_uuid, ip, port, status):
     sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/"
     # format data as text/plain
@@ -17,7 +17,7 @@ def register_component_in_sol(self, sol_ip, sol_tcp, star, sol, com_uuid, ip, po
         f"star: {star}\n"
         f"sol: {sol}\n"
         f"component: {com_uuid}\n"
-        f"com-ip: {ip}\n"
+        f"com-ip: {ip}\n"git branch --set-upstream-to=origin/<branch> feature/restructure
         f"com-tcp: {port}\n"
         f"status: {status}"
     )
@@ -30,3 +30,7 @@ def register_component_in_sol(self, sol_ip, sol_tcp, star, sol, com_uuid, ip, po
         return None
 
 #need to listen for response from SOL
+
+@app.route("/")
+def hello_world():
+    return "<p>Hello, World!</p>"
