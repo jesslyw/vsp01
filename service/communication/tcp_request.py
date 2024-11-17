@@ -1,36 +1,34 @@
 import requests
 
-#send tcp Methode request, type, endpoint, body
-def send_tcp_request(method, url, body, type):
+def send_tcp_request(method, url, body=None, headers=None):
+    ''' 
+    send a tcp request to a given url 
+    '''
     try:
-        response = requests.request(method, url, data=body, headers={'Content-Type': type})
-        if response.status_code == 200:
-            return response.json()
-    except Exception as e:
-        print(e)
-
-
-def register_component_in_sol(self, sol_ip, sol_tcp, star, sol, com_uuid, ip, port, status):
-    sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/"
-    # format data as text/plain
-    post_data = (
-        f"star: {star}\n"
-        f"sol: {sol}\n"
-        f"component: {com_uuid}\n"
-        f"com-ip: {ip}\n"git branch --set-upstream-to=origin/<branch> feature/restructure
-        f"com-tcp: {port}\n"
-        f"status: {status}"
-    )
-    try:
-        post_response = requests.post(sol_url, data=post_data, headers={
-            'Content-Type': 'text/plain'})
-        return post_response.status_code
-    except requests.Timeout:
-        print(f"Timeout occurred while trying to reach {sol_url}")
+        response = requests.request(method, url, json=body, headers=headers, timeout=5)
+        response.raise_for_status() 
+        return response.json() if response.status_code == 200 else None
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
         return None
 
-#need to listen for response from SOL
 
-@app.route("/")
-def hello_world():
-    return "<p>Hello, World!</p>"
+
+
+
+'''
+TODOs aus dem Blatt 
+'''
+''' stern routes '''
+
+#DONE: POST /vs/v1/system/
+#TODO: PATCH /vs/v1/system/<COM-UUID>
+#TODO: GET /vs/v1/system/<COM-UUID>?star=<STAR-UUID>
+#TODO: DELETE /vs/v1/system/<COM-UUID>?star=<STAR-UUID>
+
+''' messaging routes '''
+
+#TODO: POST /vs/v1/messages/<MSG-UUID>
+#TODO: DELETE /vs/v1/messages/<MSG-UUID>?star=<STAR-UUID>
+#TODO: GET /vs/v1/messages?star=<STAR-UUID>&scope=<SCOPE>&info=<INFO>
+#TODO: GET /vs/v1/messages/<MSG-UUID>?star=<STAR-UUID>
