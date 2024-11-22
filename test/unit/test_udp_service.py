@@ -1,5 +1,6 @@
 import pytest
-from src.udp_service import UdpService
+
+from src.service.communication.udp_service import UdpService
 
 
 def test_broadcast_message(mocker):

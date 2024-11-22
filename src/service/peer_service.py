@@ -43,3 +43,23 @@ class PeerService:
                 self.logger.info(f"Discovered {len(valid_responses)} valid SOL component(s).")
 
         return valid_responses
+
+    def choose_sol(self, valid_responses):
+        """
+        Wähle den SOL mit der größten UUID aus einer Liste von validen Antworten.
+
+        Args:
+            valid_responses (list): Liste von validen Antworten im Format (response, addr).
+
+        Returns:
+            tuple: (response, addr) des gewählten SOL oder None, falls keine valide Antwort existiert.
+        """
+        if not valid_responses:
+            self.logger.warning("Keine validen SOL-Komponenten verfügbar.")
+            return None, None
+
+        # Wähle den SOL mit der größten UUID (lexikografisch sortiert)
+        # TODO: Im Aufgabenblatt steht:  (Vorsicht Falle! Hatten wir in der Vorlesung 😉 ), also eventuell anpassen !!
+        chosen_response, chosen_addr = max(valid_responses, key=lambda x: x[0]["sol"])
+        self.logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
+        return chosen_response, chosen_addr
