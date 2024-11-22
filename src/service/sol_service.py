@@ -1,9 +1,9 @@
-import json
 import threading
+from src.service.sol_api import create_sol_api
 
 
 class SOLService:
-    def __init__(self, udp_service, component_model, logger, star_uuid, sol_uuid, ip, star_port):
+    def __init__(self, udp_service, component_model, logger, star_uuid, sol_uuid, ip, star_port,  max_components=10):
         self.udp_service = udp_service
         self.component_model = component_model
         self.logger = logger
@@ -11,10 +11,23 @@ class SOLService:
         self.sol_uuid = sol_uuid
         self.ip = ip
         self.star_port = star_port
+        self.max_components = max_components
+        self.registered_components = []
+
+        # Start the SOL API in a separate thread
+        self.start_sol_api()
 
         # Start a thread to listen for HELLO? messages
         listener_thread = threading.Thread(target=self.listen_for_hello, daemon=True)
         listener_thread.start()
+
+
+    def start_sol_api(self):
+        """Starts the SOL API in a separate thread."""
+        app = create_sol_api(self)
+        api_thread = threading.Thread(target=app.run, kwargs={"port": self.star_port, "debug": False}, daemon=True)
+        api_thread.start()
+        self.logger.info(f"SOL API started on port {self.star_port}")
 
     def listen_for_hello(self):
         """Listens for HELLO? messages and responds with the required JSON blob."""
@@ -48,3 +61,4 @@ class SOLService:
             self.udp_service.send_response(response, target_ip, target_port)
         except Exception as e:
             self.logger.error(f"Failed to send response to {target_ip}:{target_port}: {e}")
+

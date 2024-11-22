@@ -1,4 +1,4 @@
-from src.service.peer_api import create_peer_api
+from src.service.sol_api import create_peer_api
 import threading
 
 
@@ -7,17 +7,6 @@ class PeerService:
         self.udp_service = udp_service
         self.component_model = component_model
         self.logger = logger
-
-        # Start the Peer API in a separate thread
-        self.start_peer_api()
-
-    def start_peer_api(self):
-        """Starts the Peer API in a separate thread."""
-        app = create_peer_api(self)
-        # TODO: Eventuell Port in die Config?
-        api_thread = threading.Thread(target=app.run, kwargs={"port": 5001, "debug": False}, daemon=True)
-        api_thread.start()
-        self.logger.info("Peer API started on port 5001")
 
     def broadcast_hello(self):
         """Broadcast a HELLO? message and wait for SOL responses."""
