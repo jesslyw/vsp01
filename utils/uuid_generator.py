@@ -1,5 +1,6 @@
 from random import randint
 
+@staticmethod
 def generate_uuid():
     uuid = randint(1000,9999)
     list = []

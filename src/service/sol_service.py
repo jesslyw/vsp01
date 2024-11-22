@@ -1,9 +1,10 @@
 import threading
+
 from src.service.sol_api import create_sol_api
 
 
 class SOLService:
-    def __init__(self, udp_service, component_model, logger, star_uuid, sol_uuid, ip, star_port,  max_components=10):
+    def __init__(self, udp_service, component_model, logger, star_uuid, sol_uuid, ip, star_port, max_components=10):
         self.udp_service = udp_service
         self.component_model = component_model
         self.logger = logger
@@ -20,7 +21,6 @@ class SOLService:
         # Start a thread to listen for HELLO? messages
         listener_thread = threading.Thread(target=self.listen_for_hello, daemon=True)
         listener_thread.start()
-
 
     def start_sol_api(self):
         """Starts the SOL API in a separate thread."""
@@ -61,4 +61,5 @@ class SOLService:
             self.udp_service.send_response(response, target_ip, target_port)
         except Exception as e:
             self.logger.error(f"Failed to send response to {target_ip}:{target_port}: {e}")
+
 
