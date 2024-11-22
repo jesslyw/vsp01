@@ -3,6 +3,7 @@ from datetime import datetime
 from random import randint
 import hashlib
 
+import requests
 
 from src.service.sol_service import SOLService
 
@@ -110,7 +111,7 @@ class PeerService:
         )
 
         # Registriere die Komponente selbst
-        self.sol_service.registered_components.append({
+        self.sol_service.registered_peers.append({
             "component": com_uuid,
             "com-ip": self.udp_service.ip,
             "com-tcp": self.udp_service.port,
@@ -135,3 +136,35 @@ class PeerService:
         """
         identifier = f"{self.udp_service.ip}{com_uuid}{com_uuid}".encode('utf-8')
         return hashlib.md5(identifier).hexdigest()
+
+    def send_status_update(self, sol_ip, sol_tcp, retries=2, wait_time=10):
+        """
+        Sendet eine Statusmeldung an SOL.
+        """
+        payload = {
+            "star": self.sol_service.star_uuid,
+            "sol": self.sol_service.sol_uuid,
+            "component": self.sol_service.sol_uuid,
+            "com-ip": self.udp_service.ip,
+            "com-tcp": self.udp_service.port,
+            "status": 200
+        }
+
+        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.sol_service.sol_uuid}"
+        for attempt in range(retries + 1):
+            try:
+                self.logger.info(f"Sending status update to SOL at {url}: {payload}")
+                response = requests.patch(url, json=payload)
+                if response.status_code == 200:
+                    self.logger.info("Status update successful.")
+                    return True
+                else:
+                    self.logger.warning(f"Status update failed: {response.status_code} {response.text}")
+            except requests.RequestException as e:
+                self.logger.error(f"Error sending status update: {e}")
+
+            self.logger.warning(f"Retrying status update... ({attempt + 1}/{retries})")
+            time.sleep(wait_time)
+
+        self.logger.error("Status update failed after retries. Exiting.")
+        return False

@@ -1,4 +1,6 @@
 import threading
+import time
+from datetime import datetime
 
 from src.service.sol_api import create_sol_api
 
@@ -13,7 +15,7 @@ class SOLService:
         self.ip = ip
         self.star_port = star_port
         self.max_components = max_components
-        self.registered_components = []
+        self.registered_peers = []
 
         # Start the SOL API in a separate thread
         self.start_sol_api()
@@ -21,6 +23,9 @@ class SOLService:
         # Start a thread to listen for HELLO? messages
         listener_thread = threading.Thread(target=self.listen_for_hello, daemon=True)
         listener_thread.start()
+
+        health_check_thread = threading.Thread(target=self.check_component_health, daemon=True)
+        health_check_thread.start()
 
     def start_sol_api(self):
         """Starts the SOL API in a separate thread."""
@@ -62,4 +67,12 @@ class SOLService:
         except Exception as e:
             self.logger.error(f"Failed to send response to {target_ip}:{target_port}: {e}")
 
-
+    def check_peer_health(self):
+        while True:
+            current_time = datetime.now()
+            for peer in self.registered_peers:
+                last_interaction = datetime.fromisoformat(peer["last_interaction_timestamp"])
+                if (current_time - last_interaction).total_seconds() > 60:
+                    self.logger.warning(f"Component {peer['component']} is inactive. Marking as disconnected.")
+                    peer["status"] = "disconnected"
+            time.sleep(30)
