@@ -2,20 +2,23 @@ import threading
 import time
 from datetime import datetime
 
+import requests
+
+from src.app.config import Config
 from src.service.sol_api import create_sol_api
 
 
+# TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?
 class SOLService:
-    def __init__(self, udp_service, component_model, logger, star_uuid, sol_uuid, ip, star_port, max_components=10):
+    def __init__(self, udp_service, component_model, logger, star_uuid, sol_uuid, ip, star_port=None):
         self.udp_service = udp_service
-        self.component_model = component_model
-        self.logger = logger
+        self.component_model = component_model  # TODO: Macht aktuell nichts
+        self.logger = logger  # TODO: Muss das übergeben werden?
         self.star_uuid = star_uuid
         self.sol_uuid = sol_uuid
         self.ip = ip
-        self.star_port = star_port
-        self.max_components = max_components
-        self.registered_peers = []
+        self.star_port = star_port or Config.STAR_PORT
+        self.registered_peers = [] # TODO: potenzielle Racing-Conditions
 
         # Start the SOL API in a separate thread
         self.start_sol_api()
@@ -24,7 +27,8 @@ class SOLService:
         listener_thread = threading.Thread(target=self.listen_for_hello, daemon=True)
         listener_thread.start()
 
-        health_check_thread = threading.Thread(target=self.check_component_health, daemon=True)
+        # Start a thread for health checks
+        health_check_thread = threading.Thread(target=self.check_peer_health, daemon=True)
         health_check_thread.start()
 
     def start_sol_api(self):
@@ -32,7 +36,7 @@ class SOLService:
         app = create_sol_api(self)
         api_thread = threading.Thread(target=app.run, kwargs={"port": self.star_port, "debug": False}, daemon=True)
         api_thread.start()
-        self.logger.info(f"SOL API started on port {self.star_port}")
+        self.logger.info(f"SOL API started on port {Config.STAR_PORT}")  # TODO: Ist das der richtige Port?
 
     def listen_for_hello(self):
         """Listens for HELLO? messages and responds with the required JSON blob."""
@@ -41,14 +45,11 @@ class SOLService:
             def handle_message(message, addr):
                 if message.strip() == "HELLO?":
                     self.logger.info(f"Received HELLO? from {addr[0]}:{addr[1]}")
-
-                    # Sende die Antwort zurück
                     self.send_response(addr[0], addr[1])
                 else:
                     self.logger.warning(f"Unexpected message from {addr[0]}:{addr[1]}: {message}")
 
-            # Starte das UDP-Listening und leite Nachrichten weiter
-            self.udp_service.listen(self.star_port, callback=handle_message)
+            self.udp_service.listen(Config.STAR_PORT, callback=handle_message)
         except Exception as e:
             self.logger.error(f"Error while listening for HELLO? messages: {e}")
 
@@ -68,11 +69,48 @@ class SOLService:
             self.logger.error(f"Failed to send response to {target_ip}:{target_port}: {e}")
 
     def check_peer_health(self):
+        """Checks the health of registered peers and updates their status."""
         while True:
             current_time = datetime.now()
             for peer in self.registered_peers:
                 last_interaction = datetime.fromisoformat(peer["last_interaction_timestamp"])
-                if (current_time - last_interaction).total_seconds() > 60:
+                if (current_time - last_interaction).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
                     self.logger.warning(f"Component {peer['component']} is inactive. Marking as disconnected.")
                     peer["status"] = "disconnected"
-            time.sleep(30)
+            time.sleep(Config.HEALTH_CHECK_INTERVAL)
+
+    def unregister_all_peers_and_exit(self):
+        """
+        Unregister all peers from the star and exit SOL.
+        """
+        self.logger.info("Unregistering all peers before exiting...")
+        for peer in self.registered_peers:
+            peer_uuid = peer["component"]
+            peer_ip = peer["com-ip"]
+            peer_tcp = peer["com-tcp"]
+
+            url = f"http://{peer_ip}:{peer_tcp}/vs/v1/system/{peer_uuid}?sol={self.star_uuid}"
+            for attempt in range(Config.UNREGISTER_RETRY_COUNT):  # Retry logic
+                try:
+                    self.logger.info(f"Sending DELETE request to peer {peer_uuid} at {url}")
+                    response = requests.delete(url)
+                    if response.status_code == 200:
+                        self.logger.info(f"Peer {peer_uuid} unregistered successfully.")
+                        break
+                    elif response.status_code == 401:
+                        self.logger.warning(f"Unauthorized attempt to unregister peer {peer_uuid}. Skipping.")
+                        break
+                    else:
+                        self.logger.warning(f"Unexpected response from peer {peer_uuid}: {response.status_code}")
+                except requests.RequestException as e:
+                    self.logger.error(f"Failed to contact peer {peer_uuid}: {e}")
+
+                self.logger.warning(
+                    f"Retrying DELETE request to peer {peer_uuid}... ({attempt + 1}/{Config.UNREGISTER_RETRY_COUNT})")
+                time.sleep(Config.UNREGISTER_RETRY_DELAY)
+
+            peer["status"] = "disconnected"
+            self.logger.info(f"Marked peer {peer_uuid} as disconnected.")
+
+        self.logger.info("All peers processed. Exiting SOL...")
+        exit(Config.SOL_EXIT_CODE)
