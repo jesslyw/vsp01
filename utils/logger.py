@@ -1,13 +1,17 @@
 import logging
 
 class Logger:
+    '''
+    logs messages to the console and log file
+    using either info() or error() determines the severity level of the message recorded 
+    '''
     def __init__(self):
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s',
+            format='%(asctime)s - %(levelname)s - %(message)s', # log format
             handlers=[
-                logging.FileHandler('logs/application.log'),  # Log to file
-                logging.StreamHandler()  # Log to console
+                logging.FileHandler('logs/application.log'),  # log to file
+                logging.StreamHandler()  # log to console
             ]
         )
         self.logger = logging.getLogger()
