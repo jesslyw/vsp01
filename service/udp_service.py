@@ -28,7 +28,9 @@ class UdpService:
 
     @staticmethod
     def listen(port, callback):
-        """Listen for incoming UDP messages and invoke a callback."""
+        """
+        Listen for incoming UDP messages and invoke the callback function if a response is recieved
+        """
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('', port))
         
