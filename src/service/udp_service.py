@@ -39,3 +39,29 @@ class UdpService:
             data, addr = sock.recvfrom(1024) # response data and sender address in the form of ip,port 
             message = data.decode('utf-8').strip(chr(0))
             callback(message, addr)
+
+    @staticmethod
+    def listen_for_responses(port, timeout=5):
+        """Listen for responses to a broadcast for a specified timeout."""
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_socket.bind(('', port))
+        udp_socket.settimeout(timeout)
+
+        responses = []
+        try:
+            while True:
+                data, addr = udp_socket.recvfrom(1024)
+                message = data.decode('utf-8').strip(chr(0))
+                try:
+                    # Parse JSON response
+                    response = json.loads(message)
+                    responses.append((response, addr))
+                except json.JSONDecodeError:
+                    print(f"Invalid response from {addr[0]}:{addr[1]}: {message}")
+        except socket.timeout:
+            # Timeout reached, stop listening
+            pass
+        finally:
+            udp_socket.close()
+
+        return responses        
