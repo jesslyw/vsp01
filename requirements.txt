@@ -2,3 +2,4 @@ python-dotenv
 flask
 pytest
 pytest-mock
+requests
