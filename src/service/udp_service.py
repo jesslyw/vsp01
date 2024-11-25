@@ -31,14 +31,16 @@ class UdpService:
         """
         Listen for incoming UDP messages and invoke the callback function if a response is recieved
         """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(('', port))
-        
-        while True:
-            # recvform speichert ankommende Nachrichten im Buffer damit keine verloren gehen
-            data, addr = sock.recvfrom(1024) # response data and sender address in the form of ip,port 
-            message = data.decode('utf-8').strip(chr(0))
-            callback(message, addr)
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            print("about to bind socket...")
+            sock.bind(('', port))
+            print("binding successful")
+
+            while True:
+                # recvform speichert ankommende Nachrichten im Buffer damit keine verloren gehen
+                data, addr = sock.recvfrom(1024) # response data and sender address in the form of ip,port
+                message = data.decode('utf-8').strip(chr(0))
+                callback(message, addr)
 
     @staticmethod
     def listen_for_responses(port, timeout=5):

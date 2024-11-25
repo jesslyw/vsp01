@@ -1,4 +1,5 @@
 import sys
+import threading
 import time
 from datetime import datetime
 from random import randint
@@ -110,7 +111,8 @@ class PeerService:
 
         self.component_model.is_sol = True
         sol_manager = SolManager(self.sol_service)
-        sol_manager.manage()
+        sol_thread = threading.Thread(target=sol_manager.manage())
+        sol_thread.start()
         sys.exit()
 
 
