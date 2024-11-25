@@ -8,6 +8,7 @@ import requests
 from src.app.config import Config
 from src.service.sol_service import SOLService
 from src.service.udp_service import UdpService
+from src.manager.sol_manager import SolManager
 
 
 class PeerService:
@@ -105,6 +106,11 @@ class PeerService:
             "last_interaction_timestamp": init_timestamp
         })
         self.logger.info(f"Self-registered as SOL with STAR-UUID: {star_uuid}")
+
+        self.component_model.is_sol = True
+        sol_manager = SolManager(self.sol_service)
+        sol_manager.manage()
+
 
     def generate_com_uuid(self):
         """

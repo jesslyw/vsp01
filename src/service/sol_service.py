@@ -19,6 +19,8 @@ class SOLService:
         self.ip = ip
         self.star_port = star_port or Config.STAR_PORT
         self.registered_peers = [] # TODO: potenzielle Racing-Conditions
+        self.num_active_components = 1
+        self.max_active_components = 4
 
         # Start the SOL API in a separate thread
         self.start_sol_api()

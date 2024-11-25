@@ -13,7 +13,12 @@ class PeerManager:
     Übernimmt die Verwaltung der Verbindungen des Peers.
     """
     def manage(self):
-        pass
+
+        #Search for a star
+        responses = self.peerService.broadcast_hello_and_initialize()
+        chosen_response, address = self.peerService.choose_sol(responses)
+
+
 
     """
     Eventuell brauchen wir diese Methode nicht mehr.
