@@ -64,4 +64,4 @@ class UdpService:
         finally:
             udp_socket.close()
 
-        return responses        
+        return responses
