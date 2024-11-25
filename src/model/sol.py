@@ -11,7 +11,6 @@
 import hashlib
 import random
 import time
-from udp_broadcast import UdpBroadcast
 
 class SOL:
     def __init__(self, ip, port, com_uuid):

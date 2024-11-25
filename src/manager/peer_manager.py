@@ -1,6 +1,6 @@
-from service.peer_service import PeerService
-from app.config import Config
-from utils.uuid_generator import UuidGenerator
+from src.service.peer_service import PeerService
+from src.app.config import Config
+from src.utils.uuid_generator import UuidGenerator
 
 class PeerManager:
     def __init__(self):

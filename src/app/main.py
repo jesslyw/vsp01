@@ -1,9 +1,13 @@
 import threading
 from flask import Flask
-from manager.peer_manager import PeerManager
-from manager.sol_manager import SolManager
-from app.config import Config
+from src.manager.peer_manager import PeerManager
+from src.manager.sol_manager import SolManager
+from config import Config
 
+
+"""
+Dieses Skript startet das Programm. Dazu initialisiert es alle nötigen Datenmodelle und Services.
+"""
 
 # Initialize Flask app
 app = Flask(__name__)
