@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 from datetime import datetime
@@ -25,20 +26,13 @@ class SOLService:
         # Start the SOL API in a separate thread
         self.start_sol_api()
 
-        # Start a thread to listen for HELLO? messages
-        listener_thread = threading.Thread(target=self.listen_for_hello, daemon=True)
-        listener_thread.start()
-
-        # Start a thread for health checks
-        health_check_thread = threading.Thread(target=self.check_peer_health, daemon=True)
-        health_check_thread.start()
 
     def start_sol_api(self):
         """Starts the SOL API in a separate thread."""
         app = create_sol_api(self)
-        api_thread = threading.Thread(target=app.run, kwargs={"port": self.star_port, "debug": False}, daemon=True)
+        api_thread = threading.Thread(target=app.run, kwargs={"port": Config.PEER_PORT, "debug": False}, daemon=True)
         api_thread.start()
-        self.logger.info(f"SOL API started on port {Config.STAR_PORT}")  # TODO: Ist das der richtige Port?
+        self.logger.info(f"SOL API started on port {Config.PEER_PORT}")  # TODO: Ist das der richtige Port?
 
     def listen_for_hello(self):
         """Listens for HELLO? messages and responds with the required JSON blob."""
@@ -50,8 +44,9 @@ class SOLService:
                     self.send_response(addr[0], addr[1])
                 else:
                     self.logger.warning(f"Unexpected message from {addr[0]}:{addr[1]}: {message}")
-
+            print("about to listen....")
             UdpService.listen(Config.STAR_PORT, callback=handle_message)
+            print("Just started listening!")
         except Exception as e:
             self.logger.error(f"Error while listening for HELLO? messages: {e}")
 
@@ -79,7 +74,8 @@ class SOLService:
                 if (current_time - last_interaction).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
                     self.logger.warning(f"Component {peer['component']} is inactive. Marking as disconnected.")
                     peer["status"] = "disconnected"
-            time.sleep(Config.HEALTH_CHECK_INTERVAL)
+            time_after_check = datetime.now()
+            time.sleep(Config.HEALTH_CHECK_INTERVAL-(time_after_check-current_time))
 
     def unregister_all_peers_and_exit(self):
         """
