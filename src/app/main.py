@@ -1,11 +1,13 @@
 import threading
-from flask import Flask
+import socket
+from flask import Flask, request
 from src.manager.peer_manager import PeerManager
 from src.manager.sol_manager import SolManager
 from config import Config
-from src.model.peer import Peer
+from src.model.peer import Component
 from src.utils.uuid_generator import UuidGenerator
 from src.service.peer_service import PeerService
+from src.utils.logger import Logger
 
 
 """
@@ -29,12 +31,13 @@ flask_thread.start()
 flask_thread.join()
 
 # Initialize Model, Services and Managers
-peer = Peer("ip", Config.PEER_PORT, UuidGenerator.generate_com_uuid())
+logger = Logger()
+print(Config.IP)
+peer = Component(Config.IP, Config.PEER_PORT, UuidGenerator.generate_com_uuid())
 
+peer_service = PeerService(peer, logger)
 
-
-sol_manager = SolManager()
-peer_manager = PeerManager()
+peer_manager = PeerManager(peerService=peer_service)
 
 peer_manager.manage() #Startet Peer-Manager
 #Todo starte Input-Handler

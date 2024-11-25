@@ -4,7 +4,7 @@ import random
 import time
 import threading
 
-class Peer:
+class Component:
     def __init__(self, ip, port, com_uuid):
         self.ip = ip
         self.port = port
