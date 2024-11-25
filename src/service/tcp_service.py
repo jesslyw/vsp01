@@ -8,7 +8,7 @@ def send_tcp_request(method, url, body=None, headers=None):
     try:
         response = requests.request(method, url, json=body, headers=headers, timeout=5)
         response.raise_for_status() 
-        return response.json() if response.status_code == 200 else None
+        return response.json(), response.status_code if response.status_code == 200 else None
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
         return None

@@ -18,14 +18,14 @@ class PeerManager:
         responses = self.peerService.broadcast_hello_and_initialize()
         chosen_response, address = self.peerService.choose_sol(responses)
 
+        registration_response, status = self.peerService.request_registration_with_sol(
+            chosen_response["sol-ip"],
+            chosen_response["sol-tcp"],
+            chosen_response["star"],
+            chosen_response["sol"],
+            chosen_response["component"]
+        )
+        #Todo optimize by using config
 
-
-    """
-    Eventuell brauchen wir diese Methode nicht mehr.
-    """
-    def join_star(self):
-        managed_to_join_star = PeerService.broadcast_hello_and_listen_for_sol_response(self.com_uuid, self.ip, self.starport)
-        if not managed_to_join_star:
-            print("No response from existing SOL, becoming SOL...")
-            return False
-        return True
+        while True:
+            self.peerService.send_status_update(chosen_response["sol-ip"], chosen_response["sol-tcp"])

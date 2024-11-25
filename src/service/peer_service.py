@@ -11,6 +11,7 @@ from src.app.config import Config
 from src.service.sol_service import SOLService
 from src.service.udp_service import UdpService
 from src.manager.sol_manager import SolManager
+from src.service.tcp_service import send_tcp_request
 
 
 class PeerService:
@@ -114,6 +115,23 @@ class PeerService:
         sol_thread = threading.Thread(target=sol_manager.manage())
         sol_thread.start()
         sys.exit()
+
+    def request_registration_with_sol(self, sol_ip, sol_tcp, star, sol, com_uuid):
+        """
+        Send status to SOL and return the HTTP status code.
+        """
+        sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/"
+        post_data = {
+            "star": star,
+            "sol": sol,
+            "component": com_uuid,
+            "com-ip": self.component_model.ip,
+            "com-tcp": self.component_model.port,
+            "status": 200,
+        }
+        headers = {"Content-Type": "application/json"}
+
+        return send_tcp_request("POST", sol_url, body=post_data, headers=headers)
 
 
     def generate_com_uuid(self):
