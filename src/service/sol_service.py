@@ -6,12 +6,12 @@ import requests
 
 from src.app.config import Config
 from src.controller.sol_controller import create_sol_api
+from udp_service import UdpService
 
 
 # TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?
 class SOLService:
-    def __init__(self, udp_service, component_model, logger, star_uuid, sol_uuid, ip, star_port=None):
-        self.udp_service = udp_service
+    def __init__(self, component_model, logger, star_uuid, sol_uuid, ip, star_port=None):
         self.component_model = component_model  # TODO: Macht aktuell nichts
         self.logger = logger  # TODO: Muss das übergeben werden?
         self.star_uuid = star_uuid
@@ -49,7 +49,7 @@ class SOLService:
                 else:
                     self.logger.warning(f"Unexpected message from {addr[0]}:{addr[1]}: {message}")
 
-            self.udp_service.listen(Config.STAR_PORT, callback=handle_message)
+            UdpService.listen(Config.STAR_PORT, callback=handle_message)
         except Exception as e:
             self.logger.error(f"Error while listening for HELLO? messages: {e}")
 
@@ -64,7 +64,7 @@ class SOLService:
         }
         self.logger.info(f"Sending response to {target_ip}:{target_port}: {response}")
         try:
-            self.udp_service.send_response(response, target_ip, target_port)
+            UdpService.send_response(response, target_ip, target_port)
         except Exception as e:
             self.logger.error(f"Failed to send response to {target_ip}:{target_port}: {e}")
 

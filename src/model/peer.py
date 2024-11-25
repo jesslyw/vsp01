@@ -10,4 +10,3 @@ class Peer:
         self.port = port
         self.com_uuid = com_uuid
         self.is_sol = False
-        self.udp_broadcast = None

@@ -7,11 +7,11 @@ import requests
 
 from src.app.config import Config
 from src.service.sol_service import SOLService
+from udp_service import UdpService
 
 
 class PeerService:
-    def __init__(self, udp_service, component_model, logger):
-        self.udp_service = udp_service
+    def __init__(self, component_model, logger):
         self.component_model = component_model  # TODO: Wird hier gerade nicht benutzt
         self.logger = logger  # TODO: Muss eventuell gar nicht übergeben werden
         self.sol_service = None  # Wird initialisiert, wenn Peer zu Sol wird
@@ -25,7 +25,7 @@ class PeerService:
         for attempt in range(Config.STATUS_UPDATE_RETRIES + 1):
             # Broadcast HELLO?
             try:
-                self.udp_service.broadcast_udp_message("HELLO?")
+                UdpService.broadcast_message(self.component_model.port, "HELLO?")
             except Exception as e:
                 self.logger.error(f"Failed to broadcast HELLO?: {e}")
                 continue
@@ -33,8 +33,8 @@ class PeerService:
             # Listen for SOL responses
             self.logger.info("Waiting for responses from SOL components...")
             try:
-                responses = self.udp_service.listen_for_responses(self.udp_service.port,
-                                                                  timeout=Config.TIMEOUT_LISTENING_FOR_UPD_RESPONSE)
+                responses = UdpService.listen_for_responses(self.component_model.port,
+                                                                  timeout=Config.TIMEOUT_LISTENING_FOR_UPD_RESPONSE) #TODO port anpassen???
             except Exception as e:
                 self.logger.error(f"Error while listening for responses: {e}")
                 continue
@@ -90,18 +90,17 @@ class PeerService:
         self.logger.info(f"Initializing as new SOL with STAR-UUID: {star_uuid}, COM-UUID: {com_uuid}")
 
         self.sol_service = SOLService(
-            udp_service=self.udp_service,
             component_model=self.component_model,
             logger=self.logger,
             star_uuid=star_uuid,
             sol_uuid=com_uuid,
-            ip=self.udp_service.ip,
+            ip=self.component_model.ip,
         )
 
         self.sol_service.registered_peers.append({
             "component": com_uuid,
-            "com-ip": self.udp_service.ip,
-            "com-tcp": self.udp_service.port,
+            "com-ip": self.component_model.ip,
+            "com-tcp": self.component_model.port,
             "integration_timestamp": init_timestamp,
             "last_interaction_timestamp": init_timestamp
         })
@@ -121,7 +120,7 @@ class PeerService:
         """
         Generiert die STAR-UUID basierend auf der IP-Adresse, dem SOL-ID und der COM-UUID.
         """
-        identifier = f"{self.udp_service.ip}{com_uuid}{com_uuid}".encode('utf-8')
+        identifier = f"{self.component_model.ip}{com_uuid}{com_uuid}".encode('utf-8')
         return hashlib.md5(identifier).hexdigest()
 
     def send_status_update(self, sol_ip, sol_tcp):
@@ -132,8 +131,8 @@ class PeerService:
             "star": self.sol_service.star_uuid,
             "sol": self.sol_service.sol_uuid,
             "component": self.sol_service.sol_uuid,
-            "com-ip": self.udp_service.ip,
-            "com-tcp": self.udp_service.port,
+            "com-ip": self.component_model.ip,
+            "com-tcp": self.component_model.port,
             "status": 200
         }
 
