@@ -7,7 +7,7 @@ import requests
 
 from src.app.config import Config
 from src.service.sol_service import SOLService
-from udp_service import UdpService
+from src.service.udp_service import UdpService
 
 
 class PeerService:

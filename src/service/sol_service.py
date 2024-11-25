@@ -6,7 +6,7 @@ import requests
 
 from src.app.config import Config
 from src.controller.sol_controller import create_sol_api
-from udp_service import UdpService
+from src.service.udp_service import UdpService
 
 
 # TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?

@@ -3,7 +3,7 @@ import socket
 from flask import Flask, request
 from src.manager.peer_manager import PeerManager
 from src.manager.sol_manager import SolManager
-from config import Config
+from src.app.config import Config
 from src.model.peer import Component
 from src.utils.uuid_generator import UuidGenerator
 from src.service.peer_service import PeerService

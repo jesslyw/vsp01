@@ -1,7 +1,7 @@
 import threading
 from src.utils.uuid_generator import UuidGenerator
 from src.app.config import Config
-from src.service.sol_service import SolService
+from src.service.sol_service import SOLService
 class SolManager:
     def __init__(self):
 
