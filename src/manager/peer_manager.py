@@ -13,7 +13,6 @@ class PeerManager:
     Übernimmt die Verwaltung der Verbindungen des Peers.
     """
     def manage(self):
-        print("Manager is managing")
         pass
 
     """

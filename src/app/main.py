@@ -32,7 +32,6 @@ flask_thread.join()
 
 # Initialize Model, Services and Managers
 logger = Logger()
-print(Config.IP)
 peer = Component(Config.IP, Config.PEER_PORT, UuidGenerator.generate_com_uuid())
 
 peer_service = PeerService(peer, logger)
