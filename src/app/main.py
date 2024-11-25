@@ -39,4 +39,3 @@ peer_service = PeerService(peer, logger)
 peer_manager = PeerManager(peerService=peer_service)
 
 peer_manager.manage() #Startet Peer-Manager
-#Todo starte Input-Handler

@@ -1,9 +1,4 @@
-import threading
-import time
 
-from src.utils.uuid_generator import UuidGenerator
-from src.app.config import Config
-from src.service.sol_service import SOLService
 class SolManager:
     def __init__(self, sol_service):
 
@@ -11,4 +6,6 @@ class SolManager:
 
 
     def manage(self):
-        pass
+
+        #setting up a thread to listen for Hello?-messages
+        self.sol_service.listen_for_hello()

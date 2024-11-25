@@ -1,3 +1,4 @@
+import sys
 import time
 from datetime import datetime
 from random import randint
@@ -23,7 +24,7 @@ class PeerService:
         """
         self.logger.info("Broadcasting HELLO? to discover SOL...")
 
-        for attempt in range(Config.STATUS_UPDATE_RETRIES + 1):
+        for attempt in range(Config.STATUS_UPDATE_RETRIES):
             # Broadcast HELLO?
             try:
                 UdpService.broadcast_message(self.component_model.port, "HELLO?")
@@ -110,6 +111,7 @@ class PeerService:
         self.component_model.is_sol = True
         sol_manager = SolManager(self.sol_service)
         sol_manager.manage()
+        sys.exit()
 
 
     def generate_com_uuid(self):
