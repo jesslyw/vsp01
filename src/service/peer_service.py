@@ -29,7 +29,7 @@ class PeerService:
         for attempt in range(Config.STATUS_UPDATE_RETRIES):
             # Broadcast HELLO?
             try:
-                UdpService.broadcast_message(self.component_model.port, "HELLO?")
+                UdpService.broadcast_message(Config.STAR_PORT, "HELLO?")
             except Exception as e:
                 self.logger.error(f"Failed to broadcast HELLO?: {e}")
                 continue
