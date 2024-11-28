@@ -75,7 +75,8 @@ class SOLService:
                     self.logger.warning(f"Component {peer['component']} is inactive. Marking as disconnected.")
                     peer["status"] = "disconnected"
             time_after_check = datetime.now()
-            time.sleep(Config.HEALTH_CHECK_INTERVAL-(time_after_check-current_time))
+            time_elapsed = int((time_after_check-current_time).total_seconds())
+            time.sleep(Config.PEER_INACTIVITY_THRESHOLD-time_elapsed)
 
     def unregister_all_peers_and_exit(self):
         """
