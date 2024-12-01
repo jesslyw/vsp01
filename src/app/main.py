@@ -21,7 +21,7 @@ app = Flask(__name__)
 
 # Function to run Flask app
 def run_flask():
-    app.run(host=Config.IP, port=9090, debug=True)
+    app.run(host=Config.IP, port=Config.STAR_PORT, debug=True)
 
 # Start Flask in a separate thread
 flask_thread = threading.Thread(target=run_flask)
