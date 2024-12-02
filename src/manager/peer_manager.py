@@ -3,6 +3,7 @@ import os
 from src.service.peer_service import PeerService
 from src.app.config import Config
 from src.utils.uuid_generator import UuidGenerator
+from src.utils.logger import Logger
 
 class PeerManager:
     def __init__(self, peerService):
@@ -10,6 +11,7 @@ class PeerManager:
         self.starport = Config.STAR_PORT
         self.com_uuid = UuidGenerator.generate_com_uuid()
         self.peerService = peerService
+        self.logger = Logger(self.com_uuid)
 
     """
     Übernimmt die Verwaltung der Verbindungen des Peers.
