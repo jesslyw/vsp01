@@ -8,7 +8,7 @@ class PeerManager:
     def __init__(self, peerService):
         self.ip = Config.IP
         self.starport = Config.STAR_PORT
-        self.com_uuid = UuidGenerator.generate_com_uuid
+        self.com_uuid = UuidGenerator.generate_com_uuid()
         self.peerService = peerService
 
     """
