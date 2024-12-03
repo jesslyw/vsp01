@@ -68,6 +68,22 @@ class SOLService:
         except Exception as e:
             global_logger.error(f"Failed to send response to {target_ip}:{target_port}: {e}")
 
+    def check_component_status(self, peer):
+        """
+        Überprüft den Status einer Komponente über eine GET-Anfrage.
+        """
+        url = f"https://{peer['com-ip']}:{peer['com-tcp']}/vs/v1/system/{peer['component']}?star={self.star_uuid}"
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                global_logger.info(f"Component {peer['component']} is active.")
+                peer["last_interaction_timestamp"] = datetime.now().isoformat()
+            else:
+                global_logger.warning(f"Component {peer['component']} returned status {response.status_code}.")
+        except requests.RequestException as e:
+            global_logger.error(f"Failed to contact component {peer['component']}: {e}")
+            peer["status"] = "disconnected"
+
     def check_peer_health(self):
         """Checks the health of registered peers and updates their status."""
         while True:
@@ -77,8 +93,8 @@ class SOLService:
                     for peer in self.registered_peers:
                         last_interaction = datetime.fromisoformat(peer["last_interaction_timestamp"])
                         if (current_time - last_interaction).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
-                            global_logger.warning(f"Component {peer['component']} is inactive. Marking as disconnected.")
-                            peer["status"] = "disconnected"
+                            global_logger.warning(f"Component {peer['component']} is inactive. Checking stauts.")
+                            self.check_component_status(peer)
                 time_after_check = datetime.now()
                 time_elapsed = int((time_after_check-current_time).total_seconds())
                 time.sleep(Config.PEER_INACTIVITY_THRESHOLD-time_elapsed)

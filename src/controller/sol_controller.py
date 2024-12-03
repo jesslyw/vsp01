@@ -131,4 +131,25 @@ def create_sol_api(sol_service):
         global_logger.info(f"Component {com_uuid} unregistered successfully.")
         return "ok", 200
 
+    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["PATCH"])
+    def update_component_status(com_uuid):
+        data = request.get_json()
+
+        # Validierung
+        if data["star"] != sol_service.star_uuid or data["sol"] != sol_service.sol_uuid:
+            return "Unauthorized", 401
+
+        with sol_service._peers_lock:
+            peer = next((p for p in sol_service.registered_peers if p["component"] == com_uuid), None)
+
+        if not peer:
+            return "Not Found", 404
+
+        if peer["com-ip"] != data["com-ip"] or peer["com-tcp"] != data["com-tcp"] or data["status"] != 200:
+            return "Conflict", 409
+
+        peer["last_interaction_timestamp"] = datetime.now().isoformat()
+        peer["status"] = data["status"]
+        return "ok", 200
+
     return app

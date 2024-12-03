@@ -1,24 +1,29 @@
 import os
-
-from src.service.peer_service import PeerService
+import threading
+from src.controller.peer_controller import PeerController
+from src.model.peer import Peer
 from src.app.config import Config
 from src.utils.uuid_generator import UuidGenerator
-from src.utils.logger import Logger
+from src.utils.logger import Logger, global_logger
 
 
 class PeerManager:
     def __init__(self, peerService):
-        self.ip = Config.IP
-        self.starport = Config.STAR_PORT
-        self.com_uuid = UuidGenerator.generate_com_uuid()
+        self.peer = Peer(Config.IP, Config.PEER_PORT, UuidGenerator.generate_com_uuid())
         self.peerService = peerService
-        self.logger = Logger(self.com_uuid)
 
     """
     Übernimmt die Verwaltung der Verbindungen des Peers.
     """
 
     def manage(self):
+        # REST-API für den Peer starten
+        try:
+            peer_controller = PeerController(self.peer)
+            peer_api_thread = threading.Thread(target=peer_controller.start, daemon=True)
+            peer_api_thread.start()
+        except Exception as e:
+            global_logger.error(f"Failed to start listener thread: {e}")
 
         # Search for a star
         responses = self.peerService.broadcast_hello_and_initialize()
@@ -36,5 +41,5 @@ class PeerManager:
         if status != 200:
             os.abort()
 
-        while True:
-            self.peerService.send_status_update(chosen_response["sol-ip"], chosen_response["sol-tcp"])
+        # Statusmeldung regelmäßig senden
+        self.peerService.send_status_update_periodically(chosen_response["sol-ip"], chosen_response["sol-tcp"])

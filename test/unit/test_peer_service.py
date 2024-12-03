@@ -15,8 +15,6 @@ class TestPeerService:
         udp_service = MagicMock()
         logger = MagicMock()
         component_model = MagicMock()
-
-        udp_service= MagicMock()
         # Initialisiere PeerService
         service = PeerService(udp_service)
 
