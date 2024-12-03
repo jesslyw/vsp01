@@ -5,6 +5,7 @@ from src.app.config import Config
 from src.utils.uuid_generator import UuidGenerator
 from src.utils.logger import Logger
 
+
 class PeerManager:
     def __init__(self, peerService):
         self.ip = Config.IP
@@ -16,9 +17,10 @@ class PeerManager:
     """
     Übernimmt die Verwaltung der Verbindungen des Peers.
     """
+
     def manage(self):
 
-        #Search for a star
+        # Search for a star
         responses = self.peerService.broadcast_hello_and_initialize()
         chosen_response, address = self.peerService.choose_sol(responses)
 
@@ -29,7 +31,7 @@ class PeerManager:
             chosen_response["sol"],
             chosen_response["component"]
         )
-        #Todo optimize by using config
+        # Todo optimize by using config
 
         if status != 200:
             os.abort()

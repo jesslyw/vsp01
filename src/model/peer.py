@@ -1,8 +1,9 @@
-#Definiert die Peer-Klasse, die die Eigenschaften und Methoden eines Peers repräsentiert.
+# Definiert die Peer-Klasse, die die Eigenschaften und Methoden eines Peers repräsentiert.
 
 import random
 import time
 import threading
+
 
 class Component:
     def __init__(self, ip, port, com_uuid):

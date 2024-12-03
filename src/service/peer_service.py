@@ -101,7 +101,7 @@ class PeerService:
             ip=self.component_model.ip,
         )
 
-        self.sol_service.registered_peers.append({
+        self.sol_service.add_peer({
             "component": com_uuid,
             "com-ip": self.component_model.ip,
             "com-tcp": self.component_model.port,

@@ -7,6 +7,7 @@ from src.app.config import Config
 def create_sol_api(sol_service):
     app = Flask(__name__)
 
+
     @app.route(Config.API_BASE_URL, methods=['POST'])
     def register_component():
         """
