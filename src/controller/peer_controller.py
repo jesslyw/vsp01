@@ -1,5 +1,6 @@
 from flask import Flask, request
 
+
 class PeerController:
     def __init__(self, service):
         self.service = service

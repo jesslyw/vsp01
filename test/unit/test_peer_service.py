@@ -16,15 +16,14 @@ class TestPeerService:
         logger = MagicMock()
         component_model = MagicMock()
 
+        udp_service= MagicMock()
         # Initialisiere PeerService
-        service = PeerService(udp_service, component_model, logger)
+        service = PeerService(udp_service)
 
         # Initialisiere SOLService innerhalb von PeerService
         service.sol_service = MagicMock()
         service.sol_service.star_uuid = "star-uuid"
         service.sol_service.sol_uuid = "sol-uuid"
-        service.udp_service.ip = "127.0.0.1"
-        service.udp_service.port = 8000
 
         return service
 
@@ -32,7 +31,7 @@ class TestPeerService:
         """
         Test, ob die Methode bei gültigen SOL-Antworten korrekt funktioniert.
         """
-        mock_peer_service.udp_service.listen_for_responses.return_value = [
+        udp_service.listen_for_responses.return_value = [
             ({"star": "star-uuid", "sol": "sol-uuid", "sol-ip": "127.0.0.1", "sol-tcp": "8000"}, ("127.0.0.1", 8000))
         ]
 

@@ -1,7 +1,6 @@
-#Definiert die Star-Klasse, die den Stern und seine Eigenschaften beschreibt.
+# Definiert die Star-Klasse, die den Stern und seine Eigenschaften beschreibt.
 
 # listen_for_incoming_udp_broadcasts()
-
 
 
 # set_star_uuid()
@@ -11,6 +10,7 @@
 import hashlib
 import random
 import time
+
 
 class SOL:
     def __init__(self, ip, port, com_uuid):
@@ -30,7 +30,7 @@ class SOL:
         self.star_initialized_at = time.time()
         self.num_active_components = 1
         self.max_active_components = 4  # Can be overridden
-        
+
         component_info = {
             "com_uuid": self.com_uuid,
             "ip": self.ip,
