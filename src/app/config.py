@@ -43,6 +43,9 @@ class Config:
     COMPONENT_TCP_FIELD = "com-tcp"
     STATUS_FIELD = "status"
 
+    SOL_IP_FIELD = "sol-ip"
+    SOL_TCP_FIELD = "sol-tcp"
+
     # Logging
     LOGGING_LEVEL = "INFO"
 

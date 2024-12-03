@@ -20,17 +20,16 @@ class PeerManager:
         responses = self.peerService.broadcast_hello_and_initialize()
         chosen_response, address = self.peerService.choose_sol(responses)
 
-        registration_response, status = self.peerService.request_registration_with_sol(
-            chosen_response["sol-ip"],
-            chosen_response["sol-tcp"],
-            chosen_response["star"],
-            chosen_response["sol"],
-            chosen_response["component"]
-        )
-        #Todo optimize by using config
+        registration_response, status = self.peerService.request_registration_with_sol(chosen_response)
 
         if status != 200:
             os.abort()
 
+        sol_ip = chosen_response[Config.SOL_IP_FIELD]
+        sol_tcp = chosen_response[Config.SOL_TCP_FIELD]
+        sol_uuid = chosen_response[Config.SOL_UUID_FIELD]
+
         while True:
-            self.peerService.send_status_update(chosen_response["sol-ip"], chosen_response["sol-tcp"])
+            update_successful = self.peerService.send_status_update(sol_ip, sol_tcp, sol_uuid)
+            if not update_successful:
+                os.abort()

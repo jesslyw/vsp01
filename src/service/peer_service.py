@@ -34,10 +34,12 @@ class PeerService:
                 self.logger.error(f"Failed to broadcast HELLO?: {e}")
                 continue
 
+            startTime = datetime.now()
+
             # Listen for SOL responses
             self.logger.info("Waiting for responses from SOL components...")
             try:
-                responses = UdpService.listen_for_responses(self.component_model.port,
+                responses = UdpService.listen_for_responses(Config.STAR_PORT,
                                                                   timeout=Config.TIMEOUT_LISTENING_FOR_UPD_RESPONSE) #TODO port anpassen???
             except Exception as e:
                 self.logger.error(f"Error while listening for responses: {e}")
@@ -57,7 +59,9 @@ class PeerService:
                 return valid_responses
 
             self.logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_RETRIES})")
-            time.sleep(Config.STATUS_UPDATE_WAIT)
+            endTime = datetime.now()
+            elapsed = int((endTime-startTime).total_seconds())
+            time.sleep(max(0, Config.STATUS_UPDATE_WAIT-elapsed))
 
         # No SOL responses received, initialize as new SOL
         self.logger.warning("No SOL components found after retries. Initializing as new SOL...")
@@ -116,15 +120,20 @@ class PeerService:
         sol_thread.start()
         sys.exit()
 
-    def request_registration_with_sol(self, sol_ip, sol_tcp, star, sol, com_uuid):
+    def request_registration_with_sol(self, sol_data):
         """
         Send status to SOL and return the HTTP status code.
         """
+        star = sol_data[Config.STAR_UUID_FIELD]
+        sol = sol_data[Config.COMPONENT_UUID_FIELD]
+        sol_ip = sol_data[Config.SOL_IP_FIELD]
+        sol_tcp = sol_data[Config.SOL_TCP_FIELD]
+
         sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/"
         post_data = {
             "star": star,
             "sol": sol,
-            "component": com_uuid,
+            "component": self.component_model.com_uuid,
             "com-ip": self.component_model.ip,
             "com-tcp": self.component_model.port,
             "status": 200,
@@ -151,7 +160,7 @@ class PeerService:
         identifier = f"{self.component_model.ip}{com_uuid}{com_uuid}".encode('utf-8')
         return hashlib.md5(identifier).hexdigest()
 
-    def send_status_update(self, sol_ip, sol_tcp):
+    def send_status_update(self, sol_ip, sol_tcp, sol_uuid):
         """
         Sendet eine Statusmeldung an SOL.
         """
@@ -164,7 +173,7 @@ class PeerService:
             "status": 200
         }
 
-        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.sol_service.sol_uuid}"
+        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{sol_uuid}"
         for attempt in range(Config.STATUS_UPDATE_RETRIES + 1):
             try:
                 self.logger.info(f"Sending status update to SOL at {url}: {payload}")

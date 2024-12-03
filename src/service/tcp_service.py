@@ -11,7 +11,7 @@ def send_tcp_request(method, url, body=None, headers=None):
         return response.json(), response.status_code if response.status_code == 200 else None
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
-        return None
+        return None, None
 
 app = Flask(__name__)
 
