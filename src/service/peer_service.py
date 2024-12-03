@@ -12,6 +12,7 @@ from src.service.sol_service import SOLService
 from src.service.udp_service import UdpService
 from src.manager.sol_manager import SolManager
 from src.service.tcp_service import send_tcp_request
+from src.model.peer import Component
 
 
 class PeerService:
@@ -26,7 +27,7 @@ class PeerService:
         """
         self.logger.info("Broadcasting HELLO? to discover SOL...")
 
-        for attempt in range(Config.STATUS_UPDATE_RETRIES):
+        for attempt in range(Config.STATUS_UPDATE_RETRIES+100):
             # Broadcast HELLO?
             try:
                 UdpService.broadcast_message(Config.STAR_PORT, "HELLO?")
@@ -85,6 +86,14 @@ class PeerService:
         # Wähle Sol mit größter UUID (lexikographisch)
         chosen_response, chosen_addr = max(valid_responses, key=lambda x: x[0]["sol"])
         self.logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
+
+        connection = Component.SolConnection(
+            chosen_response[Config.SOL_IP_FIELD],
+            chosen_response[Config.SOL_TCP_FIELD],
+            chosen_response[Config.SOL_UUID_FIELD]
+        )
+        self.component_model.sol_connection = connection
+
         return chosen_response, chosen_addr
 
     def initialize_as_sol(self):
@@ -160,7 +169,7 @@ class PeerService:
         identifier = f"{self.component_model.ip}{com_uuid}{com_uuid}".encode('utf-8')
         return hashlib.md5(identifier).hexdigest()
 
-    def send_status_update(self, sol_ip, sol_tcp, sol_uuid):
+    def send_status_update(self):
         """
         Sendet eine Statusmeldung an SOL.
         """
@@ -173,6 +182,10 @@ class PeerService:
             "status": 200
         }
 
+        sol_ip = self.component_model.sol_connection.ip
+        sol_tcp = self.component_model.sol_connection.port
+        sol_uuid = self.component_model.sol_connection.uuid
+
         url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{sol_uuid}"
         for attempt in range(Config.STATUS_UPDATE_RETRIES + 1):
             try:
@@ -183,6 +196,7 @@ class PeerService:
                     return True
                 else:
                     self.logger.warning(f"Status update failed: {response.status_code} {response.text}")
+                    #TODO react to failed status update
             except requests.RequestException as e:
                 self.logger.error(f"Error sending status update: {e}")
 
@@ -219,4 +233,3 @@ class PeerService:
             time.sleep(Config.EXIT_REQUEST_WAIT)
 
         self.logger.error("Failed to unregister after retries. Exiting forcefully.")
-        return False

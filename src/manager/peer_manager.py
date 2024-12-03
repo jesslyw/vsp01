@@ -9,9 +9,7 @@ class PeerManager:
     def __init__(self, peerService):
         self.ip = Config.IP
         self.starport = Config.STAR_PORT
-        self.com_uuid = UuidGenerator.generate_com_uuid()
         self.peerService = peerService
-        self.logger = Logger(self.com_uuid)
 
     """
     Übernimmt die Verwaltung der Verbindungen des Peers.
@@ -20,18 +18,18 @@ class PeerManager:
 
         #Search for a star
         responses = self.peerService.broadcast_hello_and_initialize()
+
+        #chose star, obtain response
         chosen_response, address = self.peerService.choose_sol(responses)
 
+        #try to register
         registration_response, status = self.peerService.request_registration_with_sol(chosen_response)
 
         if status != 200:
-            os.abort()
+            os.abort() #exit program if registration fails
 
-        sol_ip = chosen_response[Config.SOL_IP_FIELD]
-        sol_tcp = chosen_response[Config.SOL_TCP_FIELD]
-        sol_uuid = chosen_response[Config.SOL_UUID_FIELD]
-
+        #proceed with status updates
         while True:
-            update_successful = self.peerService.send_status_update(sol_ip, sol_tcp, sol_uuid)
+            update_successful = self.peerService.send_status_update()
             if not update_successful:
                 os.abort()

@@ -10,3 +10,10 @@ class Component:
         self.port = port
         self.com_uuid = com_uuid
         self.is_sol = False
+        self.sol_connection = None
+
+    class SolConnection:
+        def __init__(self, ip, port, uuid):
+            self.ip = ip
+            self.port = port
+            self.uuid = uuid
