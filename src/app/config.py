@@ -51,3 +51,6 @@ class Config:
 
     # Exit-Konfiguration
     SOL_EXIT_CODE = 0  # Exit-Code für SOL
+
+    # Syslog logging (/var/log/syslog) anschalten (false für lokale Enwicklung)
+    LOG_TO_SYSLOG = False
