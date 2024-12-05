@@ -13,7 +13,6 @@ from src.service.udp_service import UdpService
 from src.manager.sol_manager import SolManager
 from src.service.tcp_service import send_tcp_request
 from src.model.peer import Peer
-from src.model.peer import Peer
 from src.controller.peer_controller import create_peer_controller
 
 
