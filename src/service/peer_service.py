@@ -12,7 +12,7 @@ from src.service.sol_service import SOLService
 from src.service.udp_service import UdpService
 from src.manager.sol_manager import SolManager
 from src.service.tcp_service import send_tcp_request
-from src.model.peer import Component
+from src.model.peer import Peer
 
 
 class PeerService:
@@ -27,7 +27,7 @@ class PeerService:
         """
         self.logger.info("Broadcasting HELLO? to discover SOL...")
 
-        for attempt in range(Config.STATUS_UPDATE_RETRIES+100):
+        for attempt in range(Config.STATUS_UPDATE_RETRIES):
             # Broadcast HELLO?
             try:
                 UdpService.broadcast_message(Config.STAR_PORT, "HELLO?")
@@ -87,7 +87,7 @@ class PeerService:
         chosen_response, chosen_addr = max(valid_responses, key=lambda x: x[0]["sol"])
         self.logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
 
-        connection = Component.SolConnection(
+        connection = Peer.SolConnection(
             chosen_response[Config.SOL_IP_FIELD],
             chosen_response[Config.SOL_TCP_FIELD],
             chosen_response[Config.SOL_UUID_FIELD]

@@ -4,7 +4,7 @@ from flask import Flask, request
 from src.manager.peer_manager import PeerManager
 from src.manager.sol_manager import SolManager
 from src.app.config import Config
-from src.model.peer import Component
+from src.model.peer import Peer
 from src.utils.uuid_generator import UuidGenerator
 from src.service.peer_service import PeerService
 from src.utils.logger import Logger
@@ -30,10 +30,11 @@ flask_thread.start()
 
 # Wait for Flask to complete its execution
 flask_thread.join()
-
+uuid = UuidGenerator.generate_com_uuid()
 # Initialize Model, Services and Managers
 logger = Logger()
 peer = Component(Config.IP, Config.PEER_PORT, UuidGenerator.generate_com_uuid())
+peer = Peer(Config.IP, Config.PEER_PORT, uuid)
 
 peer_service = PeerService(peer, logger)
 
