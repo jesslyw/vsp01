@@ -25,6 +25,8 @@ class PeerManager:
         #try to register
         registration_response, status = self.peerService.request_registration_with_sol(chosen_response)
 
+        self.peerService.start_peer_api()
+
         if status != 200:
             os.abort() #exit program if registration fails
 

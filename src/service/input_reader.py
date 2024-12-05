@@ -24,7 +24,7 @@ class Input_Reader:
                     if self.component.is_sol:
                         pass
                     else:
-                        pass
+                        self.peerService.send_exit_request()
                     os.abort()
                 case "CRASH":
                     os.abort()

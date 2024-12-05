@@ -1,14 +1,15 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+from src.app.config import Config
 
-class PeerController:
-    def __init__(self, service):
-        self.service = service
-        self.app = Flask(__name__)
+def create_peer_controller(service, com_uuid, star_uuid):
+    app = Flask(__name__)
 
-    def start_tls_server(self):
-        @self.app.route('/register', methods=['POST'])
-        def register_with_sol():
-            data = request.json
-            return self.service.register_with_sol(data)
+    @app.route(f"{Config.API_BASE_URL}<req_com_uuid>?=<req_star_uuid>", methods=['DELETE'])
+    def accept_sol_shutdown(req_com_uuid, req_star_uuid):
 
-        self.app.run(port=443, ssl_context=('cert.pem', 'key.pem'))
+        if req_com_uuid != com_uuid or req_star_uuid != star_uuid:
+            return jsonify({"error": "Unexpected request parameters"}), 401
+
+        return jsonify({"message": "Shutdown accepted"}), 200
+
+    return app

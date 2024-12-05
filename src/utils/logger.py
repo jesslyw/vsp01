@@ -2,7 +2,7 @@ from datetime import datetime
 import logging
 import logging.handlers
 import sys
-from app.config import Config
+from src.app.config import Config
 
 class Logger:
     '''

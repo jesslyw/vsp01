@@ -4,7 +4,7 @@ import random
 import time
 import threading
 
-class Component:
+class Peer:
     def __init__(self, ip, port, com_uuid):
         self.ip = ip
         self.port = port
@@ -13,7 +13,8 @@ class Component:
         self.sol_connection = None
 
     class SolConnection:
-        def __init__(self, ip, port, uuid):
+        def __init__(self, ip, port, uuid, star_uuid):
             self.ip = ip
             self.port = port
             self.uuid = uuid
+            self.star_uuid = star_uuid

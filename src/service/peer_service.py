@@ -12,14 +12,23 @@ from src.service.sol_service import SOLService
 from src.service.udp_service import UdpService
 from src.manager.sol_manager import SolManager
 from src.service.tcp_service import send_tcp_request
-from src.model.peer import Component
+from src.model.peer import Peer
+from src.controller.peer_controller import create_peer_controller
 
 
 class PeerService:
     def __init__(self, component_model, logger):
-        self.component_model = component_model  # TODO: Wird hier gerade nicht benutzt
+        self.component_model = component_model
         self.logger = logger  # TODO: Muss eventuell gar nicht übergeben werden
         self.sol_service = None  # Wird initialisiert, wenn Peer zu Sol wird
+
+    def start_peer_api(self):
+        star_uuid = self.component_model.sol_connection.star_uuid
+        controller = create_peer_controller(self, self.component_model.com_uuid, star_uuid)
+        api_thread = threading.Thread(target=controller.run, kwargs={"port": Config.PEER_PORT, "debug": False},
+                                      daemon=True)
+        api_thread.start()
+        self.logger.info(f"Peer API started on port {Config.PEER_PORT}")
 
     def broadcast_hello_and_initialize(self):
         """
@@ -87,10 +96,11 @@ class PeerService:
         chosen_response, chosen_addr = max(valid_responses, key=lambda x: x[0]["sol"])
         self.logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
 
-        connection = Component.SolConnection(
+        connection = Peer.SolConnection(
             chosen_response[Config.SOL_IP_FIELD],
             chosen_response[Config.SOL_TCP_FIELD],
-            chosen_response[Config.SOL_UUID_FIELD]
+            chosen_response[Config.SOL_UUID_FIELD],
+            chosen_response[Config.STAR_UUID_FIELD]
         )
         self.component_model.sol_connection = connection
 
@@ -196,7 +206,6 @@ class PeerService:
                     return True
                 else:
                     self.logger.warning(f"Status update failed: {response.status_code} {response.text}")
-                    #TODO react to failed status update
             except requests.RequestException as e:
                 self.logger.error(f"Error sending status update: {e}")
 
@@ -206,10 +215,16 @@ class PeerService:
         self.logger.error("Status update failed after retries. Exiting.")
         return False
 
-    def send_exit_request(self, sol_ip, sol_tcp):
+    def send_exit_request(self):
         """
         Sendet eine Abmeldeanforderung (EXIT) an SOL.
         """
+        if self.component_model.sol_connection is None:
+            self.logger.info(f"Component shut down via terminal.")
+            return
+
+        sol_ip = self.component_model.sol_connection.ip
+        sol_tcp = self.component_model.sol_connection.port
         url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.sol_service.sol_uuid}?sol={self.sol_service.star_uuid}"
         for attempt in range(Config.EXIT_REQUEST_RETRIES):
             try:
