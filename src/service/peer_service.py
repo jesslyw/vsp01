@@ -13,12 +13,13 @@ from src.service.udp_service import UdpService
 from src.manager.sol_manager import SolManager
 from src.service.tcp_service import send_tcp_request
 from src.model.peer import Peer
+from src.model.peer import Peer
 from src.controller.peer_controller import create_peer_controller
 
 
 class PeerService:
     def __init__(self, component_model, logger):
-        self.component_model = component_model
+        self.component_model = component_model  # TODO: Wird hier gerade nicht benutzt
         self.logger = logger  # TODO: Muss eventuell gar nicht übergeben werden
         self.sol_service = None  # Wird initialisiert, wenn Peer zu Sol wird
 
@@ -36,7 +37,7 @@ class PeerService:
         """
         self.logger.info("Broadcasting HELLO? to discover SOL...")
 
-        for attempt in range(Config.STATUS_UPDATE_RETRIES+100):
+        for attempt in range(Config.STATUS_UPDATE_RETRIES):
             # Broadcast HELLO?
             try:
                 UdpService.broadcast_message(Config.STAR_PORT, "HELLO?")
