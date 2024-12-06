@@ -1,8 +1,5 @@
-#Definiert die Peer-Klasse, die die Eigenschaften und Methoden eines Peers repräsentiert.
+# Definiert die Peer-Klasse, die die Eigenschaften und Methoden eines Peers repräsentiert.
 
-import random
-import time
-import threading
 
 class Peer:
     def __init__(self, ip, port, com_uuid):
@@ -10,6 +7,8 @@ class Peer:
         self.port = port
         self.com_uuid = com_uuid
         self.is_sol = False
+        self.status = 200
+
         self.sol_connection = None
 
     class SolConnection:

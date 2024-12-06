@@ -19,9 +19,13 @@ class Config:
     UUID_MIN = 1000  # Mindestwert für UUID-Generierung
     UUID_MAX = 9999  # Maximalwert für UUID-Generierung
 
-    # Statusupdate-Konfiguration
-    STATUS_UPDATE_RETRIES = 2  # Anzahl der Wiederholungen für Statusupdates
-    STATUS_UPDATE_WAIT = 10  # Wartezeit zwischen Statusupdate-Versuchen in Sekunden
+    # Status Update Konfiguration
+    STATUS_UPDATE_INTERVAL = 30  # Intervall in Sekunden zwischen Statusmeldungen
+    STATUS_UPDATE_RETRY_INTERVALS = [10, 20]  # Retry-Intervalle in Sekunden
+    STATUS_UPDATE_MAX_ATTEMPTS = 3  # Maximale Wiederholungsversuche
+
+    # Timeout-Konfiguration
+    STATUS_UPDATE_TIMEOUT = 5  # Timeout für die HTTP-Requests in Sekunden
 
     # Exit-Request-Konfiguration
     EXIT_REQUEST_RETRIES = 3  # Anzahl der Wiederholungen für Exit-Requests

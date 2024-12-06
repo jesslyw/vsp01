@@ -13,46 +13,37 @@ from src.service.udp_service import UdpService
 from src.manager.sol_manager import SolManager
 from src.service.tcp_service import send_tcp_request
 from src.model.peer import Peer
-from src.controller.peer_controller import create_peer_controller
+from src.utils.logger import global_logger
 
 
 class PeerService:
-    def __init__(self, component_model, logger):
-        self.component_model = component_model  # TODO: Wird hier gerade nicht benutzt
-        self.logger = logger  # TODO: Muss eventuell gar nicht übergeben werden
+    def __init__(self, peer):
+        self.peer = peer  # TODO: Wird hier gerade nicht benutzt
         self.sol_service = None  # Wird initialisiert, wenn Peer zu Sol wird
-
-    def start_peer_api(self):
-        star_uuid = self.component_model.sol_connection.star_uuid
-        controller = create_peer_controller(self, self.component_model.com_uuid, star_uuid)
-        api_thread = threading.Thread(target=controller.run, kwargs={"port": Config.PEER_PORT, "debug": False},
-                                      daemon=True)
-        api_thread.start()
-        self.logger.info(f"Peer API started on port {Config.PEER_PORT}")
 
     def broadcast_hello_and_initialize(self):
         """
         Broadcast a HELLO? message, wait for SOL responses, and initialize as SOL if no responses are received.
         """
-        self.logger.info("Broadcasting HELLO? to discover SOL...")
+        global_logger.info("Broadcasting HELLO? to discover SOL...")
 
         for attempt in range(Config.STATUS_UPDATE_RETRIES):
             # Broadcast HELLO?
             try:
                 UdpService.broadcast_message(Config.STAR_PORT, "HELLO?")
             except Exception as e:
-                self.logger.error(f"Failed to broadcast HELLO?: {e}")
+                global_logger.error(f"Failed to broadcast HELLO?: {e}")
                 continue
 
             startTime = datetime.now()
 
             # Listen for SOL responses
-            self.logger.info("Waiting for responses from SOL components...")
+            global_logger.info("Waiting for responses from SOL components...")
             try:
                 responses = UdpService.listen_for_responses(Config.STAR_PORT,
                                                                   timeout=Config.TIMEOUT_LISTENING_FOR_UPD_RESPONSE) #TODO port anpassen???
             except Exception as e:
-                self.logger.error(f"Error while listening for responses: {e}")
+                global_logger.error(f"Error while listening for responses: {e}")
                 continue
 
             # Validate and collect responses #TODO: Diesen Step eventuell auslagern?
@@ -60,21 +51,23 @@ class PeerService:
             for response, addr in responses:
                 if "star" in response and "sol" in response and "sol-ip" in response and "sol-tcp" in response:
                     valid_responses.append((response, addr))
-                    self.logger.info(f"Discovered SOL: {response} from {addr[0]}:{addr[1]}")
+                    global_logger.info(f"Discovered SOL: {response} from {addr[0]}:{addr[1]}")
                 else:
-                    self.logger.warning(f"Invalid SOL response from {addr[0]}:{addr[1]}: {response}")
+                    global_logger.warning(f"Invalid SOL response from {addr[0]}:{addr[1]}: {response}")
 
             if valid_responses:
-                self.logger.info(f"Discovered {len(valid_responses)} valid SOL component(s).")
+                global_logger.info(f"Discovered {len(valid_responses)} valid SOL component(s).")
                 return valid_responses
 
-            self.logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_RETRIES})")
+            global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_RETRIES})")
             endTime = datetime.now()
             elapsed = int((endTime-startTime).total_seconds())
             time.sleep(max(0, Config.STATUS_UPDATE_WAIT-elapsed))
+            global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_RETRIES})")
+            time.sleep(Config.STATUS_UPDATE_WAIT)
 
         # No SOL responses received, initialize as new SOL
-        self.logger.warning("No SOL components found after retries. Initializing as new SOL...")
+        global_logger.warning("No SOL components found after retries. Initializing as new SOL...")
         self.initialize_as_sol()
         return []
 
@@ -89,12 +82,12 @@ class PeerService:
             tuple: (response, addr) des gewählten SOL oder None, falls keine valide Antwort existiert.
         """
         if not valid_responses:
-            self.logger.warning("Keine validen SOL-Komponenten verfügbar.")
+            global_logger.warning("Keine validen SOL-Komponenten verfügbar.")
             return None, None
         # TODO: Es war nicht klar, was genau das Auswahlkriterium füpr einen Sol ist
         # Wähle Sol mit größter UUID (lexikographisch)
         chosen_response, chosen_addr = max(valid_responses, key=lambda x: x[0]["sol"])
-        self.logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
+        global_logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
 
         connection = Peer.SolConnection(
             chosen_response[Config.SOL_IP_FIELD],
@@ -102,8 +95,9 @@ class PeerService:
             chosen_response[Config.SOL_UUID_FIELD],
             chosen_response[Config.STAR_UUID_FIELD]
         )
-        self.component_model.sol_connection = connection
+        self.peer.sol_connection = connection
 
+        global_logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
         return chosen_response, chosen_addr
 
     def initialize_as_sol(self):
@@ -114,26 +108,25 @@ class PeerService:
         star_uuid = self.generate_star_uuid(com_uuid)
         init_timestamp = datetime.now().isoformat()
 
-        self.logger.info(f"Initializing as new SOL with STAR-UUID: {star_uuid}, COM-UUID: {com_uuid}")
+        global_logger.info(f"Initializing as new SOL with STAR-UUID: {star_uuid}, COM-UUID: {com_uuid}")
 
         self.sol_service = SOLService(
-            component_model=self.component_model,
-            logger=self.logger,
+            component_model=self.peer,
             star_uuid=star_uuid,
             sol_uuid=com_uuid,
-            ip=self.component_model.ip,
+            ip=self.peer.ip,
         )
 
-        self.sol_service.registered_peers.append({
+        self.sol_service.add_peer({
             "component": com_uuid,
-            "com-ip": self.component_model.ip,
-            "com-tcp": self.component_model.port,
+            "com-ip": self.peer.ip,
+            "com-tcp": self.peer.port,
             "integration_timestamp": init_timestamp,
             "last_interaction_timestamp": init_timestamp
         })
-        self.logger.info(f"Self-registered as SOL with STAR-UUID: {star_uuid}")
+        global_logger.info(f"Self-registered as SOL with STAR-UUID: {star_uuid}")
 
-        self.component_model.is_sol = True
+        self.peer.is_sol = True
         sol_manager = SolManager(self.sol_service)
         sol_thread = threading.Thread(target=sol_manager.manage())
         sol_thread.start()
@@ -148,19 +141,18 @@ class PeerService:
         sol_ip = sol_data[Config.SOL_IP_FIELD]
         sol_tcp = sol_data[Config.SOL_TCP_FIELD]
 
-        sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/"
+        sol_url = f"https://{sol_ip}:{sol_tcp}/vs/v1/system/"
         post_data = {
             "star": star,
             "sol": sol,
-            "component": self.component_model.com_uuid,
-            "com-ip": self.component_model.ip,
-            "com-tcp": self.component_model.port,
+            "component": self.peer.com_uuid,
+            "com-ip": self.peer.ip,
+            "com-tcp": self.peer.port,
             "status": 200,
         }
         headers = {"Content-Type": "application/json"}
 
         return send_tcp_request("POST", sol_url, body=post_data, headers=headers)
-
 
     def generate_com_uuid(self):
         """
@@ -176,75 +168,109 @@ class PeerService:
         """
         Generiert die STAR-UUID basierend auf der IP-Adresse, dem SOL-ID und der COM-UUID.
         """
-        identifier = f"{self.component_model.ip}{com_uuid}{com_uuid}".encode('utf-8')
+        identifier = f"{self.peer.ip}{com_uuid}{com_uuid}".encode('utf-8')
         return hashlib.md5(identifier).hexdigest()
 
     def send_status_update(self):
         """
-        Sendet eine Statusmeldung an SOL.
+        Sendet eine Statusmeldung an SOL und informiert den Benutzer über den Statuscode.
         """
         payload = {
             "star": self.sol_service.star_uuid,
             "sol": self.sol_service.sol_uuid,
-            "component": self.sol_service.sol_uuid,
-            "com-ip": self.component_model.ip,
-            "com-tcp": self.component_model.port,
-            "status": 200
+            "component": self.peer.com_uuid,
+            "com-ip": self.peer.ip,
+            "com-tcp": self.peer.port,
+            "status": 200  # Immer 200, um "OK" zu signalisieren
         }
 
-        sol_ip = self.component_model.sol_connection.ip
-        sol_tcp = self.component_model.sol_connection.port
-        sol_uuid = self.component_model.sol_connection.uuid
+        sol_ip = self.peer.sol_connection.ip
+        sol_tcp = self.peer.sol_connection.port
+        sol_uuid = self.peer.sol_connection.uuid
 
-        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{sol_uuid}"
-        for attempt in range(Config.STATUS_UPDATE_RETRIES + 1):
-            try:
-                self.logger.info(f"Sending status update to SOL at {url}: {payload}")
-                response = requests.patch(url, json=payload)
-                if response.status_code == 200:
-                    self.logger.info("Status update successful.")
-                    return True
-                else:
-                    self.logger.warning(f"Status update failed: {response.status_code} {response.text}")
-            except requests.RequestException as e:
-                self.logger.error(f"Error sending status update: {e}")
+        url = f"https://{sol_ip}:{sol_tcp}/vs/v1/system/{self.peer.com_uuid}"
+        global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
 
-            self.logger.warning(f"Retrying status update... ({attempt + 1}/{Config.STATUS_UPDATE_RETRIES +1})")
-            time.sleep(Config.STATUS_UPDATE_WAIT)
+        try:
+            response = requests.patch(url, json=payload, timeout=5)
+            if response.status_code == 200:
+                global_logger.info(f"Status update to SOL successful: {response.text}")
+                return True
+            elif response.status_code == 401:
+                global_logger.warning(
+                    "Unauthorized: SOL rejected the status update. Please verify the STAR-UUID and SOL-UUID.")
+            elif response.status_code == 404:
+                global_logger.warning("Not Found: The component is not registered with SOL.")
+            elif response.status_code == 409:
+                global_logger.warning("Conflict: Data mismatch in the status update. Verify the IP, port, and UUID.")
+            else:
+                global_logger.warning(f"Unexpected status code {response.status_code}: {response.text}")
+            return False
+        except requests.RequestException as e:
+            global_logger.error(f"Error sending status update to SOL: {e}")
+            return False
 
-        self.logger.error("Status update failed after retries. Exiting.")
-        return False
+    def send_status_update_periodically(self, sol_ip, sol_tcp):
+        """
+        Sendet regelmäßig eine Statusmeldung an SOL und handhabt Wiederholungen bei Fehlern.
+        """
+        attempt = 0
+
+        while True:
+            success = self.send_status_update(sol_ip, sol_tcp)
+            if success:
+                global_logger.info("Periodic status update successful.")
+                attempt = 0  # Rücksetzen der Versuche bei Erfolg
+                time.sleep(Config.STATUS_UPDATE_INTERVAL)  # Wartezeit bis zum nächsten Update
+            else:
+                attempt += 1
+                retry_interval = Config.STATUS_UPDATE_RETRY_INTERVALS[min(attempt - 1, len(Config.STATUS_UPDATE_RETRY_INTERVALS) - 1)]
+                global_logger.warning(f"Retrying status update... Attempt {attempt}/{Config.STATUS_UPDATE_MAX_ATTEMPTS}")
+                time.sleep(retry_interval)
+
+                if attempt >= Config.STATUS_UPDATE_MAX_ATTEMPTS:
+                    global_logger.error("Failed to send status update after maximum attempts. Exiting...")
+                    self._shutdown_peer()
+
+    def _shutdown_peer(self):
+        """
+        Beendet den Peer-Prozess sauber.
+        """
+        # TODO: Was muss hier noch rein?
+        global_logger.error("Shutting down peer due to failed status updates.")
+        sys.exit(1)
 
     def send_exit_request(self):
         """
         Sendet eine Abmeldeanforderung (EXIT) an SOL.
         """
-        if self.component_model.sol_connection is None:
-            self.logger.info(f"Component shut down via terminal.")
+        if self.peer.sol_connection is None:
+            global_logger.info(f"Component shut down via terminal.")
             return
 
-        sol_ip = self.component_model.sol_connection.ip
-        sol_tcp = self.component_model.sol_connection.port
-        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.sol_service.sol_uuid}?sol={self.sol_service.star_uuid}"
+        sol_ip = self.peer.sol_connection.ip
+        sol_tcp = self.peer.sol_connection.port
+        url = f"https://{sol_ip}:{sol_tcp}/vs/v1/system/{self.sol_service.sol_uuid}?sol={self.sol_service.star_uuid}"
         for attempt in range(Config.EXIT_REQUEST_RETRIES):
             try:
-                self.logger.info(f"Sending EXIT request to SOL at {url}")
+                global_logger.info(f"Sending EXIT request to SOL at {url}")
                 response = requests.delete(url)
                 if response.status_code == 200:
-                    self.logger.info("Component successfully unregistered from SOL.")
+                    global_logger.info("Component successfully unregistered from SOL.")
                     return True
                 elif response.status_code == 401:
-                    self.logger.warning("Unauthorized to unregister from SOL. Exiting with error.")
+                    global_logger.warning("Unauthorized to unregister from SOL. Exiting with error.")
                     return False
                 elif response.status_code == 404:
-                    self.logger.warning("Component not found in SOL. Exiting with error.")
+                    global_logger.warning("Component not found in SOL. Exiting with error.")
                     return False
                 else:
-                    self.logger.warning(f"Unexpected response: {response.status_code} {response.text}")
+                    global_logger.warning(f"Unexpected response: {response.status_code} {response.text}")
             except requests.RequestException as e:
-                self.logger.error(f"Error sending EXIT request: {e}")
+                global_logger.error(f"Error sending EXIT request: {e}")
 
-            self.logger.warning(f"Retrying EXIT request... ({attempt + 1}/{Config.EXIT_REQUEST_RETRIES})")
+            global_logger.warning(f"Retrying EXIT request... ({attempt + 1}/{Config.EXIT_REQUEST_RETRIES})")
             time.sleep(Config.EXIT_REQUEST_WAIT)
 
-        self.logger.error("Failed to unregister after retries. Exiting forcefully.")
+        global_logger.error("Failed to unregister after retries. Exiting forcefully.")
+        return False
