@@ -18,17 +18,16 @@ class Input_Reader:
         while True:
             try:
                 user_input = input()
-                match user_input:
-                    case "EXIT":
-                        # TODO disconnect from star
-                        if self.component.is_sol:
-                            pass
-                        else:
-                            self.peerService.send_exit_request()
-                        os.abort()
-                    case "CRASH":
-                        os.abort()
-                    case _:
-                        print("Not a valid prompt.")
+                if user_input == "EXIT":
+                    # TODO disconnect from star
+                    if self.component.is_sol:
+                        pass
+                    else:
+                        self.peerService.send_exit_request()
+                    os.abort()
+                elif user_input == "CRASH":
+                    os.abort()
+                else:
+                    print("Not a valid prompt.")
             except Exception as e:
                 print(f"Error while reading input: {e}")

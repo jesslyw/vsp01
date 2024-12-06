@@ -45,7 +45,7 @@ class SOLService:
             def handle_message(message, addr):
                 if message.strip() == "HELLO?":
                     global_logger.info(f"Received HELLO? from {addr[0]}:{addr[1]}")
-                    global_logger.send_response(addr[0], addr[1])
+                    self.send_response(addr[0], Config.STAR_PORT)
                 else:
                     global_logger.warning(f"Unexpected message from {addr[0]}:{addr[1]}: {message}")
 

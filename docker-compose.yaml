@@ -1,0 +1,14 @@
+#docker-compose run --rm server -> Damit kannst du deinen Container mit Shell-Zugriff starten
+#docker exec -it <container_name> /bin/bash -> gewährt konsolenzugriff
+services:
+  server:
+    image: vs:latest
+    ports:
+      - "8080:5000"
+    container_name: vs-server
+    tty: true
+    stdin_open: true
+  client1:
+    image: vs:latest
+  client2:
+    image: vs:latest

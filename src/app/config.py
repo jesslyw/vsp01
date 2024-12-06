@@ -9,10 +9,10 @@ class Config:
     API_BASE_URL = "/vs/v1/system/"
 
     #UDP-Konfiguration
-    TIMEOUT_LISTENING_FOR_UPD_RESPONSE= 5 # in Sekunden
+    TIMEOUT_LISTENING_FOR_UPD_RESPONSE= 10 # in Sekunden
 
     # Broadcast-Konfiguration
-    BROADCAST_INTERVAL = 5  # Interval in Sekunden für Broadcasts
+    BROADCAST_INTERVAL = 10  # Interval in Sekunden für Broadcasts
 
     # Stern- und Komponenten-Konfiguration
     MAX_COMPONENTS = 4  # Maximale Anzahl an Komponenten in einem Stern
