@@ -9,12 +9,13 @@ from src.app.config import Config
 from src.controller.sol_controller import create_sol_api
 from src.service.udp_service import UdpService
 from src.utils.logger import global_logger
+from src.utils.uuid_generator import UuidGenerator
 
 
 # TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?
 class SOLService:
-    def __init__(self, component_model, star_uuid, sol_uuid, ip, star_port=None):
-        self.component_model = component_model  # TODO: Macht aktuell nichts
+    def __init__(self, peer, star_uuid, sol_uuid, ip, star_port=None):
+        self.peer = peer
         self.star_uuid = star_uuid
         self.sol_uuid = sol_uuid
         self.ip = ip
@@ -60,7 +61,7 @@ class SOLService:
             "sol": self.sol_uuid,
             "sol-ip": self.ip,
             "sol-tcp": self.star_port,
-            "component": self.sol_uuid,
+            "component": UuidGenerator.generate_com_uuid(),
         }
         global_logger.info(f"Sending response to {target_ip}:{target_port}: {response}")
         try:

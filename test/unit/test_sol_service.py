@@ -16,7 +16,7 @@ class TestSOLService:
         logger = MagicMock()
         sol_service = SOLService(
             udp_service=udp_service,
-            component_model=MagicMock(),
+            peer=MagicMock(),
             logger=logger,
             star_uuid="test-star-uuid",
             sol_uuid="test-sol-uuid",

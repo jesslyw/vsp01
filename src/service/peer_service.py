@@ -94,7 +94,7 @@ class PeerService:
             chosen_response[Config.STAR_UUID_FIELD]
         )
         self.peer.sol_connection = connection
-        #TODO set uuid
+        self.peer.com_uuid = chosen_response[Config.COMPONENT_UUID_FIELD]
         global_logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
         return chosen_response, chosen_addr
 
@@ -109,7 +109,7 @@ class PeerService:
         global_logger.info(f"Initializing as new SOL with STAR-UUID: {star_uuid}, COM-UUID: {com_uuid}")
 
         self.sol_service = SOLService(
-            component_model=self.peer,
+            peer=self.peer,
             star_uuid=star_uuid,
             sol_uuid=com_uuid,
             ip=self.peer.ip,
@@ -124,6 +124,7 @@ class PeerService:
         })
 
         self.peer.is_sol = True
+        self.peer.com_uuid = com_uuid
         sol_manager = SolManager(self.sol_service)
         sol_thread = threading.Thread(target=sol_manager.manage())
         sol_thread.start()
