@@ -17,13 +17,6 @@ class PeerManager:
     """
 
     def manage(self):
-        # REST-API für den Peer starten
-        try:
-            peer_controller = PeerController(self.peer)
-            peer_api_thread = threading.Thread(target=peer_controller.start, daemon=True)
-            peer_api_thread.start()
-        except Exception as e:
-            global_logger.error(f"Failed to start listener thread: {e}")
 
         # Search for a star
         responses = self.peerService.broadcast_hello_and_initialize()
@@ -37,6 +30,14 @@ class PeerManager:
             chosen_response["component"]
         )
         # Todo optimize by using config
+
+        # REST-API für den Peer starten
+        try:
+            peer_controller = PeerController(self.peerService, self.peer)
+            peer_api_thread = threading.Thread(target=peer_controller.start, daemon=True)
+            peer_api_thread.start()
+        except Exception as e:
+            global_logger.error(f"Failed to start listener thread: {e}")
 
         if status != 200:
             os.abort()
