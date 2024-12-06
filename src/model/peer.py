@@ -2,10 +2,10 @@
 
 
 class Peer:
-    def __init__(self, ip, port, com_uuid):
+    def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-        self.com_uuid = com_uuid
+        self.com_uuid = None
         self.is_sol = False
         self.status = 200
 

@@ -49,37 +49,6 @@ def create_sol_api(sol_service):
         global_logger.info(f"Component registered successfully: {component_data}")
         return jsonify({"message": "Component registered successfully", "details": component_data}), 200
 
-    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['PATCH'])
-    def update_component_status(com_uuid):
-        """
-        Updates the status of a registered component.
-        """
-        data = request.get_json()
-
-        star_uuid = data.get(Config.STAR_UUID_FIELD)
-        sol_uuid = data.get(Config.SOL_UUID_FIELD)
-        component_uuid = data.get(Config.COMPONENT_UUID_FIELD)
-        com_ip = data.get(Config.COMPONENT_IP_FIELD)
-        com_tcp = data.get(Config.COMPONENT_TCP_FIELD)
-        status = data.get(Config.STATUS_FIELD)
-
-        if not all([star_uuid, sol_uuid, component_uuid, com_ip, com_tcp, status]):
-            return jsonify({"error": "Missing required fields"}), 400
-
-        if star_uuid != sol_service.star_uuid:
-            return jsonify({"error": "Unauthorized: STAR UUID mismatch"}), 401
-
-        component = next((comp for comp in sol_service.registered_peers if comp["component"] == com_uuid), None)
-        if not component:
-            return jsonify({"error": "Component does not exist"}), 404
-
-        if component["com-ip"] != com_ip or component["com-tcp"] != com_tcp or status != 200:
-            return jsonify({"error": "Conflict: Component data mismatch"}), 409
-
-        component["last_interaction_timestamp"] = datetime.now().isoformat()
-        component["status"] = status
-        return "ok", 200
-
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['GET'])
     def get_component_status(com_uuid):
         """

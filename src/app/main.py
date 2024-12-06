@@ -30,7 +30,7 @@ flask_thread.start()
 flask_thread.join()
 
 # Initialize Model, Services and Managers
-peer = Peer(Config.IP, Config.PEER_PORT, UuidGenerator.generate_com_uuid())
+peer = Peer(Config.IP, Config.PEER_PORT)
 
 peer_service = PeerService(peer)
 

@@ -21,7 +21,7 @@ class Logger:
 
     _instance = None  # Singleton instance
 
-    def __new__(cls, com_uuid):
+    def __new__(cls):
         # create the logger
         if cls._instance is None:
             cls._instance = super(Logger, cls).__new__(cls)
@@ -30,7 +30,7 @@ class Logger:
             cls._instance.logger = logging.getLogger("GlobalLogger")
             cls._instance.logger.setLevel(logging.INFO)
 
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(process)d - %(com_uuid)s: %(message)s')
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(process)d: %(message)s')
 
         # file handler - logs will be written to the 'logs' directory
         file_handler = logging.FileHandler(f'src/logs/application_{datetime.now().strftime("%Y-%m-%d")}.log', mode="a")
@@ -53,18 +53,18 @@ class Logger:
 
             # store the component_uuid for future use in the log context
             # Store the component UUID
-            cls._instance.com_uuid = com_uuid or "GLOBAL"
+            # cls._instance.com_uuid = com_uuid or "GLOBAL" ?
         return cls._instance
 
     def info(self, message):
-        self.logger.info(message, extra={'com_uuid': self.com_uuid})
+        self.logger.info(message)
 
     def error(self, message):
-        self.logger.error(message, extra={'com_uuid': self.com_uuid})
+        self.logger.error(message)
 
     def warning(self, message):
-        self.logger.warning(message, extra={'com_uuid': self.com_uuid})
+        self.logger.warning(message)
 
 
 # Module-level global logger
-global_logger = Logger()  # Initialize with default UUID
+global_logger = Logger()

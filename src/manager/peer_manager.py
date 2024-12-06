@@ -1,17 +1,14 @@
 import os
 import threading
 from src.controller.peer_controller import PeerController
-from src.model.peer import Peer
 from src.app.config import Config
-from src.utils.uuid_generator import UuidGenerator
-from src.utils.logger import Logger, global_logger
+from src.utils.logger import global_logger
 
 
 class PeerManager:
     def __init__(self, peerService):
         self.ip = Config.IP
         self.starport = Config.STAR_PORT
-        self.peer = Peer(Config.IP, Config.PEER_PORT, UuidGenerator.generate_com_uuid())
         self.peerService = peerService
 
     """
@@ -33,7 +30,7 @@ class PeerManager:
 
         # REST-API für den Peer starten
         try:
-            peer_controller = PeerController(self.peerService, self.peer)
+            peer_controller = PeerController(self.peerService)
             peer_api_thread = threading.Thread(target=peer_controller.start, daemon=True)
             peer_api_thread.start()
         except Exception as e:

@@ -62,9 +62,7 @@ class PeerService:
             global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_MAX_ATTEMPTS-1})")
             endTime = datetime.now()
             elapsed = int((endTime-startTime).total_seconds())
-            time.sleep(max(0, Config.STATUS_UPDATE_INTERVAL-elapsed))
-            global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_MAX_ATTEMPTS-1})")
-            time.sleep(Config.STATUS_UPDATE_INTERVAL)
+            time.sleep(max(0, Config.BROADCAST_INTERVAL-elapsed))
 
         # No SOL responses received, initialize as new SOL
         global_logger.warning("No SOL components found after retries. Initializing as new SOL...")
@@ -96,7 +94,7 @@ class PeerService:
             chosen_response[Config.STAR_UUID_FIELD]
         )
         self.peer.sol_connection = connection
-
+        #TODO set uuid
         global_logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
         return chosen_response, chosen_addr
 
@@ -124,7 +122,6 @@ class PeerService:
             "integration_timestamp": init_timestamp,
             "last_interaction_timestamp": init_timestamp
         })
-        global_logger.info(f"Self-registered as SOL with STAR-UUID: {star_uuid}")
 
         self.peer.is_sol = True
         sol_manager = SolManager(self.sol_service)
