@@ -26,8 +26,6 @@ class PeerManager:
         #try to register
         registration_response, status = self.peerService.request_registration_with_sol(chosen_response)
 
-        self.peerService.start_peer_api()
-
         # REST-API für den Peer starten
         try:
             peer_controller = PeerController(self.peerService)
