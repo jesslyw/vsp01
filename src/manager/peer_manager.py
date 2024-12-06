@@ -43,4 +43,4 @@ class PeerManager:
             os.abort() #exit program if registration fails
 
         # Statusmeldung regelmäßig senden
-        self.peerService.send_status_update_periodically(chosen_response["sol-ip"], chosen_response["sol-tcp"])
+        self.peerService.send_status_update_periodically()

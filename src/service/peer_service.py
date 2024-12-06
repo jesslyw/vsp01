@@ -27,7 +27,7 @@ class PeerService:
         """
         global_logger.info("Broadcasting HELLO? to discover SOL...")
 
-        for attempt in range(Config.STATUS_UPDATE_RETRIES):
+        for attempt in range(Config.STATUS_UPDATE_MAX_ATTEMPTS-1):
             # Broadcast HELLO?
             try:
                 UdpService.broadcast_message(Config.STAR_PORT, "HELLO?")
@@ -59,12 +59,12 @@ class PeerService:
                 global_logger.info(f"Discovered {len(valid_responses)} valid SOL component(s).")
                 return valid_responses
 
-            global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_RETRIES})")
+            global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_MAX_ATTEMPTS-1})")
             endTime = datetime.now()
             elapsed = int((endTime-startTime).total_seconds())
-            time.sleep(max(0, Config.STATUS_UPDATE_WAIT-elapsed))
-            global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_RETRIES})")
-            time.sleep(Config.STATUS_UPDATE_WAIT)
+            time.sleep(max(0, Config.STATUS_UPDATE_INTERVAL-elapsed))
+            global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_MAX_ATTEMPTS-1})")
+            time.sleep(Config.STATUS_UPDATE_INTERVAL)
 
         # No SOL responses received, initialize as new SOL
         global_logger.warning("No SOL components found after retries. Initializing as new SOL...")
@@ -210,14 +210,14 @@ class PeerService:
             global_logger.error(f"Error sending status update to SOL: {e}")
             return False
 
-    def send_status_update_periodically(self, sol_ip, sol_tcp):
+    def send_status_update_periodically(self):
         """
         Sendet regelmäßig eine Statusmeldung an SOL und handhabt Wiederholungen bei Fehlern.
         """
         attempt = 0
 
         while True:
-            success = self.send_status_update(sol_ip, sol_tcp)
+            success = self.send_status_update()
             if success:
                 global_logger.info("Periodic status update successful.")
                 attempt = 0  # Rücksetzen der Versuche bei Erfolg
