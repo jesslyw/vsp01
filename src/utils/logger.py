@@ -2,7 +2,7 @@ from datetime import datetime
 import logging
 import logging.handlers
 import sys
-from src.app.config import Config
+from app.config import Config
 
 
 class Logger:
@@ -33,7 +33,7 @@ class Logger:
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(process)d: %(message)s')
 
         # file handler - logs will be written to the 'logs' directory
-        file_handler = logging.FileHandler(f'src/logs/application_{datetime.now().strftime("%Y-%m-%d")}.log', mode="a")
+        file_handler = logging.FileHandler(f'logs/application_{datetime.now().strftime("%Y-%m-%d")}.log', mode="a")
         file_handler.setFormatter(formatter)
 
         # stream handler (console output)

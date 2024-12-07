@@ -7,14 +7,13 @@ import hashlib
 
 import requests
 
-from src.app.config import Config
-from src.service.sol_service import SOLService
-from src.service.udp_service import UdpService
-from src.manager.sol_manager import SolManager
-from src.service.tcp_service import send_tcp_request
-from src.model.peer import Peer
-from src.utils.logger import global_logger
-from src.utils.uuid_generator import UuidGenerator
+from app.config import Config
+from service.udp_service import UdpService
+from manager.sol_manager import SolManager
+from service.tcp_service import send_tcp_request
+from model.peer import Peer
+from utils.logger import global_logger
+from utils.uuid_generator import UuidGenerator
 
 
 class PeerService:

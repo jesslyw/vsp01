@@ -1,5 +1,5 @@
 import threading
-from src.utils.logger import global_logger
+from utils.logger import global_logger
 
 
 class SolManager:

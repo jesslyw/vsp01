@@ -1,8 +1,8 @@
 from datetime import datetime
 from flask import Flask, request, jsonify
 
-from src.app.config import Config
-from src.utils.logger import global_logger
+from app.config import Config
+from utils.logger import global_logger
 
 
 def create_sol_api(sol_service):

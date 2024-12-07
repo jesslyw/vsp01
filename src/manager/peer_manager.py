@@ -1,7 +1,5 @@
 import os
-import threading
-from src.controller.peer_controller import PeerController
-from src.utils.logger import global_logger
+from utils.logger import global_logger
 
 
 class PeerManager:

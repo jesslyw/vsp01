@@ -5,11 +5,11 @@ from datetime import datetime
 from threading import Lock
 import requests
 
-from src.app.config import Config
-from src.controller.sol_controller import create_sol_api
-from src.service.udp_service import UdpService
-from src.utils.logger import global_logger
-from src.utils.uuid_generator import UuidGenerator
+from app.config import Config
+from controller.sol_controller import create_sol_api
+from service.udp_service import UdpService
+from utils.logger import global_logger
+from utils.uuid_generator import UuidGenerator
 
 
 # TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?

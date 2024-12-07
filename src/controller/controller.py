@@ -1,6 +1,6 @@
-from src.app.config import Config
+from app.config import Config
 from flask import request, jsonify
-from src.utils.logger import global_logger
+from utils.logger import global_logger
 from datetime import datetime
 
 
