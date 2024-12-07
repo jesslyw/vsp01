@@ -245,7 +245,7 @@ class PeerService:
 
         sol_ip = self.peer.sol_connection.ip
         sol_tcp = self.peer.sol_connection.port
-        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.sol_service.sol_uuid}?sol={self.sol_service.star_uuid}"
+        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.peer.com_uuid}?star={self.peer.sol_connection.star_uuid}"
         for attempt in range(Config.EXIT_REQUEST_RETRIES):
             try:
                 global_logger.info(f"Sending EXIT request to SOL at {url}")

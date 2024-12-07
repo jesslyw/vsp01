@@ -11,7 +11,7 @@ def initialize_flask_endpoints(app, peerService, sol_service):
         """
         Behandelt GET-Anfragen für den Status des Peers.
         """
-        star_uuid = request.args.get("star")
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
         # Validierung
         if not star_uuid or star_uuid != peerService.peer.star_uuid:
@@ -107,7 +107,7 @@ def initialize_flask_endpoints(app, peerService, sol_service):
         Unregisters a registered component from the star.
         """
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
-
+        print(f"request: {star_uuid} sol_service.star_uuid {sol_service.star_uuid}")
         if not star_uuid or star_uuid != sol_service.star_uuid:
             global_logger.warning(f"Unauthorized unregister attempt for STAR {star_uuid}")
             return "Unauthorized", 401
