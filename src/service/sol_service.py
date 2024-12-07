@@ -94,11 +94,7 @@ class SOLService:
                 with self._peers_lock:
                     for peer in self.registered_peers:
 
-                        print(peer["component"])
-                        print(self.peer.com_uuid)
-
                         if peer["component"] == self.peer.com_uuid:
-                            print("ignoring")
                             continue
 
                         # last_interaction = datetime.fromisoformat(peer["last_interaction_timestamp"])
