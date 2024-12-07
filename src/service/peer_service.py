@@ -14,12 +14,13 @@ from src.manager.sol_manager import SolManager
 from src.service.tcp_service import send_tcp_request
 from src.model.peer import Peer
 from src.utils.logger import global_logger
+from src.utils.uuid_generator import UuidGenerator
 
 
 class PeerService:
-    def __init__(self, peer):
+    def __init__(self, peer, sol_service):
         self.peer = peer  # TODO: Wird hier gerade nicht benutzt
-        self.sol_service = None  # Wird initialisiert, wenn Peer zu Sol wird
+        self.sol_service = sol_service  # Wird initialisiert, wenn Peer zu Sol wird
 
     def broadcast_hello_and_initialize(self):
         """
@@ -95,25 +96,20 @@ class PeerService:
         )
         self.peer.sol_connection = connection
         self.peer.com_uuid = chosen_response[Config.COMPONENT_UUID_FIELD]
-        global_logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
         return chosen_response, chosen_addr
 
     def initialize_as_sol(self):
         """
         Initialisiert die Komponente als Mittelpunkt eines neuen Sterns (SOL).
         """
-        com_uuid = self.generate_com_uuid()
+        com_uuid = UuidGenerator.generate_com_uuid()
         star_uuid = self.generate_star_uuid(com_uuid)
         init_timestamp = datetime.now().isoformat()
 
         global_logger.info(f"Initializing as new SOL with STAR-UUID: {star_uuid}, COM-UUID: {com_uuid}")
 
-        self.sol_service = SOLService(
-            peer=self.peer,
-            star_uuid=star_uuid,
-            sol_uuid=com_uuid,
-            ip=self.peer.ip,
-        )
+        self.sol_service.star_uuid = star_uuid
+        self.sol_service.sol_uuid = com_uuid
 
         self.sol_service.add_peer({
             "component": com_uuid,
@@ -139,7 +135,7 @@ class PeerService:
         sol_ip = sol_data[Config.SOL_IP_FIELD]
         sol_tcp = sol_data[Config.SOL_TCP_FIELD]
 
-        sol_url = f"https://{sol_ip}:{sol_tcp}/vs/v1/system/"
+        sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/"
         post_data = {
             "star": star,
             "sol": sol,
@@ -186,7 +182,7 @@ class PeerService:
         sol_tcp = self.peer.sol_connection.port
         sol_uuid = self.peer.sol_connection.uuid
 
-        url = f"https://{sol_ip}:{sol_tcp}/vs/v1/system/{self.peer.com_uuid}"
+        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.peer.com_uuid}"
         global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
 
         try:
@@ -248,7 +244,7 @@ class PeerService:
 
         sol_ip = self.peer.sol_connection.ip
         sol_tcp = self.peer.sol_connection.port
-        url = f"https://{sol_ip}:{sol_tcp}/vs/v1/system/{self.sol_service.sol_uuid}?sol={self.sol_service.star_uuid}"
+        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.sol_service.sol_uuid}?sol={self.sol_service.star_uuid}"
         for attempt in range(Config.EXIT_REQUEST_RETRIES):
             try:
                 global_logger.info(f"Sending EXIT request to SOL at {url}")

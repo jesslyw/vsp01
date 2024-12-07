@@ -4,15 +4,15 @@ import socket
 class Config:
     # Netzwerk- und API-Konfiguration
     STAR_PORT = 8000
-    PEER_PORT = 9000
+    PEER_PORT = 8000
     IP = socket.gethostbyname(socket.gethostname())
     API_BASE_URL = "/vs/v1/system/"
 
     #UDP-Konfiguration
-    TIMEOUT_LISTENING_FOR_UPD_RESPONSE= 10 # in Sekunden
+    TIMEOUT_LISTENING_FOR_UPD_RESPONSE= 5 # in Sekunden
 
     # Broadcast-Konfiguration
-    BROADCAST_INTERVAL = 10  # Interval in Sekunden für Broadcasts
+    BROADCAST_INTERVAL = 5  # Interval in Sekunden für Broadcasts
 
     # Stern- und Komponenten-Konfiguration
     MAX_COMPONENTS = 4  # Maximale Anzahl an Komponenten in einem Stern

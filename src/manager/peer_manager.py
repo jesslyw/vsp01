@@ -1,14 +1,11 @@
 import os
 import threading
 from src.controller.peer_controller import PeerController
-from src.app.config import Config
 from src.utils.logger import global_logger
 
 
 class PeerManager:
     def __init__(self, peerService):
-        self.ip = Config.IP
-        self.starport = Config.STAR_PORT
         self.peerService = peerService
 
     """
@@ -28,9 +25,9 @@ class PeerManager:
 
         # REST-API für den Peer starten
         try:
-            peer_controller = PeerController(self.peerService)
-            peer_api_thread = threading.Thread(target=peer_controller.start, daemon=True)
-            peer_api_thread.start()
+            #peer_controller = PeerController(self.peerService)
+            #peer_controller.start()
+            pass
         except Exception as e:
             global_logger.error(f"Failed to start listener thread: {e}")
 

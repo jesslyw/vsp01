@@ -14,11 +14,10 @@ from src.utils.uuid_generator import UuidGenerator
 
 # TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?
 class SOLService:
-    def __init__(self, peer, star_uuid, sol_uuid, ip, star_port=None):
+    def __init__(self, peer, star_port=None):
         self.peer = peer
-        self.star_uuid = star_uuid
-        self.sol_uuid = sol_uuid
-        self.ip = ip
+        self.star_uuid = None
+        self.sol_uuid = None
         self.star_port = star_port or Config.STAR_PORT
         self.registered_peers = []
         self._peers_lock = Lock()
@@ -26,15 +25,16 @@ class SOLService:
         self.max_active_components = 4
 
         # Start the SOL API in a separate thread
-        self.start_sol_api()
+        #self.start_sol_api()
 
     def start_sol_api(self):
         """Starts the SOL API in a separate thread."""
         try:
             app = create_sol_api(self)
-            api_thread = threading.Thread(target=app.run, kwargs={"port": Config.PEER_PORT, "debug": False}, daemon=True)
-            api_thread.start()
-            global_logger.info(f"SOL API started on port {Config.PEER_PORT}")  # TODO: Ist das der richtige Port?
+            app.run(port=Config.STAR_PORT, debug=False)
+            # api_thread = threading.Thread(target=app.run, kwargs={"port": Config.PEER_PORT, "debug": False}, daemon=True)
+            # api_thread.start()
+            global_logger.info(f"SOL API started on port {Config.STAR_PORT}")  # TODO: Ist das der richtige Port?
         except Exception as e:
             global_logger.error(f"Failed to start SOL API: {e}")
 
@@ -59,7 +59,7 @@ class SOLService:
         response = {
             "star": self.star_uuid,
             "sol": self.sol_uuid,
-            "sol-ip": self.ip,
+            "sol-ip": Config.IP,
             "sol-tcp": self.star_port,
             "component": UuidGenerator.generate_com_uuid(),
         }
@@ -73,7 +73,7 @@ class SOLService:
         """
         Überprüft den Status einer Komponente über eine GET-Anfrage.
         """
-        url = f"https://{peer['com-ip']}:{peer['com-tcp']}/vs/v1/system/{peer['component']}?star={self.star_uuid}"
+        url = f"http://{peer['com-ip']}:{peer['com-tcp']}/vs/v1/system/{peer['component']}?star={self.star_uuid}"
         try:
             response = requests.get(url, timeout=5)
             if response.status_code == 200:
@@ -119,7 +119,7 @@ class SOLService:
         peer_ip = peer["com-ip"]
         peer_tcp = peer["com-tcp"]
 
-        url = f"https://{peer_ip}:{peer_tcp}/vs/v1/system/{peer_uuid}?sol={self.star_uuid}"
+        url = f"http://{peer_ip}:{peer_tcp}/vs/v1/system/{peer_uuid}?sol={self.star_uuid}"
         for attempt in range(Config.UNREGISTER_RETRY_COUNT):
             try:
                 global_logger.info(f"Sending DELETE request to peer {peer_uuid} at {url}")
