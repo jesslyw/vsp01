@@ -19,8 +19,8 @@ from utils.uuid_generator import UuidGenerator
 
 class PeerService:
     def __init__(self, peer, sol_service):
-        self.peer = peer  # TODO: Wird hier gerade nicht benutzt
-        self.sol_service = sol_service  # Wird initialisiert, wenn Peer zu Sol wird
+        self.peer = peer
+        self.sol_service = sol_service
 
     def broadcast_hello_and_initialize(self):
         """
@@ -28,7 +28,7 @@ class PeerService:
         """
         global_logger.info("Broadcasting HELLO? to discover SOL...")
 
-        for attempt in range(Config.STATUS_UPDATE_MAX_ATTEMPTS-1):
+        for attempt in range(Config.STATUS_UPDATE_MAX_ATTEMPTS - 1):
             # Broadcast HELLO?
             try:
                 UdpService.broadcast_message(Config.STAR_PORT, "HELLO?")
@@ -42,7 +42,7 @@ class PeerService:
             global_logger.info("Waiting for responses from SOL components...")
             try:
                 responses = UdpService.listen_for_responses(Config.STAR_PORT,
-                                                                  timeout=Config.TIMEOUT_LISTENING_FOR_UPD_RESPONSE) #TODO port anpassen???
+                                                            timeout=Config.TIMEOUT_LISTENING_FOR_UPD_RESPONSE)  # TODO port anpassen???
             except Exception as e:
                 global_logger.error(f"Error while listening for responses: {e}")
                 continue
@@ -60,10 +60,11 @@ class PeerService:
                 global_logger.info(f"Discovered {len(valid_responses)} valid SOL component(s).")
                 return valid_responses
 
-            global_logger.warning(f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_MAX_ATTEMPTS-1})")
+            global_logger.warning(
+                f"No responses received. Retrying... ({attempt + 1}/{Config.STATUS_UPDATE_MAX_ATTEMPTS - 1})")
             endTime = datetime.now()
-            elapsed = int((endTime-startTime).total_seconds())
-            time.sleep(max(0, Config.BROADCAST_INTERVAL-elapsed))
+            elapsed = int((endTime - startTime).total_seconds())
+            time.sleep(max(0, Config.BROADCAST_INTERVAL - elapsed))
 
         # No SOL responses received, initialize as new SOL
         global_logger.warning("No SOL components found after retries. Initializing as new SOL...")
@@ -83,7 +84,7 @@ class PeerService:
         if not valid_responses:
             global_logger.warning("Keine validen SOL-Komponenten verfügbar.")
             return None, None
-        # TODO: Es war nicht klar, was genau das Auswahlkriterium füpr einen Sol ist
+
         # Wähle Sol mit größter UUID (lexikographisch)
         chosen_response, chosen_addr = max(valid_responses, key=lambda x: x[0]["sol"])
         global_logger.info(f"Gewählter SOL: {chosen_response} von {chosen_addr[0]}:{chosen_addr[1]}")
@@ -110,15 +111,6 @@ class PeerService:
 
         self.sol_service.star_uuid = star_uuid
         self.sol_service.sol_uuid = com_uuid
-
-        self.sol_service.add_peer({
-            "component": com_uuid,
-            "com-ip": self.peer.ip,
-            "com-tcp": self.peer.port,
-            "integration_timestamp": init_timestamp,
-            "last_interaction_timestamp": init_timestamp
-        })
-
         self.peer.is_sol = True
         self.peer.com_uuid = com_uuid
         self.sol_service.sol = SOL(self.peer.com_uuid, star_uuid)
@@ -151,7 +143,7 @@ class PeerService:
 
     def generate_com_uuid(self):
         """
-        Generiert eine einzigartige vierstellige COM-UUID.
+        Generiert eine einzigartige vierstellige COM-UUID. TODO: Wird das hier überhaupt benutzt oder wird der generator benutzt?
         """
         while True:
             com_uuid = randint(Config.UUID_MIN, Config.UUID_MAX)
@@ -161,7 +153,7 @@ class PeerService:
 
     def generate_star_uuid(self, com_uuid):
         """
-        Generiert die STAR-UUID basierend auf der IP-Adresse, dem SOL-ID und der COM-UUID.
+        Generiert die STAR-UUID basierend auf der IP-Adresse, dem SOL-ID und der COM-UUID. TODO: Wird das hier überhaupt benutzt oder wird der generator benutzt?
         """
         identifier = f"{self.peer.ip}{com_uuid}{com_uuid}".encode('utf-8')
         return hashlib.md5(identifier).hexdigest()
@@ -179,11 +171,7 @@ class PeerService:
             "status": 200  # Immer 200, um "OK" zu signalisieren
         }
 
-        sol_ip = self.peer.sol_connection.ip
-        sol_tcp = self.peer.sol_connection.port
-        sol_uuid = self.peer.sol_connection.uuid
-
-        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.peer.com_uuid}"
+        url = f"http://{self.peer.sol_connection.ip}:{self.peer.sol_connection.port}/vs/v1/system/{self.peer.com_uuid}"
         global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
 
         try:
@@ -219,8 +207,10 @@ class PeerService:
                 time.sleep(Config.STATUS_UPDATE_INTERVAL)  # Wartezeit bis zum nächsten Update
             else:
                 attempt += 1
-                retry_interval = Config.STATUS_UPDATE_RETRY_INTERVALS[min(attempt - 1, len(Config.STATUS_UPDATE_RETRY_INTERVALS) - 1)]
-                global_logger.warning(f"Retrying status update... Attempt {attempt}/{Config.STATUS_UPDATE_MAX_ATTEMPTS}")
+                retry_interval = Config.STATUS_UPDATE_RETRY_INTERVALS[
+                    min(attempt - 1, len(Config.STATUS_UPDATE_RETRY_INTERVALS) - 1)]
+                global_logger.warning(
+                    f"Retrying status update... Attempt {attempt}/{Config.STATUS_UPDATE_MAX_ATTEMPTS}")
                 time.sleep(retry_interval)
 
                 if attempt >= Config.STATUS_UPDATE_MAX_ATTEMPTS:
@@ -231,7 +221,7 @@ class PeerService:
         """
         Beendet den Peer-Prozess sauber.
         """
-        # TODO: Was muss hier noch rein?
+        # TODO: Was muss hier noch rein? Thread beenden?
         global_logger.error("Shutting down peer due to failed status updates.")
         sys.exit(1)
 
@@ -242,10 +232,7 @@ class PeerService:
         if self.peer.sol_connection is None:
             global_logger.info(f"Component shut down via terminal.")
             return
-
-        sol_ip = self.peer.sol_connection.ip
-        sol_tcp = self.peer.sol_connection.port
-        url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/{self.peer.com_uuid}?star={self.peer.sol_connection.star_uuid}"
+        url = f"http://{self.peer.sol_connection.ip}:{self.peer.sol_connection.port}/vs/v1/system/{self.peer.com_uuid}?star={self.peer.sol_connection.star_uuid}"
         for attempt in range(Config.EXIT_REQUEST_RETRIES):
             try:
                 global_logger.info(f"Sending EXIT request to SOL at {url}")

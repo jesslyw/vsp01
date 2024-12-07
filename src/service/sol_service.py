@@ -1,5 +1,4 @@
 import sys
-import threading
 import time
 from datetime import datetime
 from threading import Lock
@@ -29,8 +28,8 @@ class SOLService:
     def start_sol_api(self):
         """Starts the SOL API in a separate thread."""
         try:
-            app = create_sol_api(self)
-            app.run(port=Config.STAR_PORT, debug=False)
+            #app = create_sol_api(self) #TODO: was ist hier los? Soll das so? Kann das Weg?
+            #app.run(port=Config.STAR_PORT, debug=False)
             # api_thread = threading.Thread(target=app.run, kwargs={"port": Config.PEER_PORT, "debug": False}, daemon=True)
             # api_thread.start()
             global_logger.info(f"SOL API started on port {Config.STAR_PORT}")  # TODO: Ist das der richtige Port?
@@ -72,17 +71,17 @@ class SOLService:
         """
         Überprüft den Status einer Komponente über eine GET-Anfrage.
         """
-        url = f"http://{peer['com-ip']}:{peer['com-tcp']}/vs/v1/system/{peer['component']}?star={self.star_uuid}"
+        url = f"http://{peer.com_ip}:{peer.com_tcp}/vs/v1/system/{peer.com_uuid}?star={self.star_uuid}"
         try:
             response = requests.get(url, timeout=5)
             if response.status_code == 200:
-                global_logger.info(f"Component {peer['component']} is active.")
-                peer["last_interaction_timestamp"] = datetime.now().isoformat()
+                global_logger.info(f"Component {peer.com_uuid} is active.")
+                peer.set_last_interaction_timestamp()
             else:
-                global_logger.warning(f"Component {peer['component']} returned status {response.status_code}.")
+                global_logger.warning(f"Component {peer.com_uuid} returned status {response.status_code}.")
         except requests.RequestException as e:
-            global_logger.error(f"Failed to contact component {peer['component']}: {e}")
-            peer["status"] = "disconnected"
+            global_logger.error(f"Failed to contact component {peer.com_uuid}: {e}")
+            peer.status = "disconnected"
 
     def check_peer_health(self):
         """Checks the health of registered peers and updates their status."""
@@ -92,13 +91,13 @@ class SOLService:
                 with self._peers_lock:
                     for peer in self.registered_peers:
 
-                        if peer["component"] == self.peer.com_uuid:
+                        if peer.com_uuid == self.peer.com_uuid:
                             continue
 
-                        # last_interaction = datetime.fromisoformat(peer["last_interaction_timestamp"])
-                        # if (current_time - last_interaction).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
-                        #     global_logger.warning(f"Component {peer['component']} is inactive. Checking stauts.")
-                        #     self.check_component_status(peer)
+                        last_interaction = datetime.fromisoformat(peer.last_interaction_timestamp)
+                        if (current_time - last_interaction).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
+                            global_logger.warning(f"Component {peer.component} is inactive. Checking status.")
+                            self.check_component_status(peer)
                 time_after_check = datetime.now()
                 time_elapsed = int((time_after_check-current_time).total_seconds())
                 time.sleep(Config.PEER_INACTIVITY_THRESHOLD-time_elapsed)
@@ -114,37 +113,34 @@ class SOLService:
             self.registered_peers.clear()
 
         global_logger.info("All peers processed. Exiting SOL...")
-        sys.exit(Config.SOL_EXIT_CODE)
+        sys.exit(Config.SOL_EXIT_CODE) #TODO: Hier shutdown methode ausführen, was ist mit den Threads?
 
     def _unregister_peer(self, peer):
         """Helper method to unregister a single peer."""
-        peer_uuid = peer["component"]
-        peer_ip = peer["com-ip"]
-        peer_tcp = peer["com-tcp"]
 
-        url = f"http://{peer_ip}:{peer_tcp}/vs/v1/system/{peer_uuid}?sol={self.star_uuid}"
+        url = f"http://{peer.ip}:{peer.com_tcp}/vs/v1/system/{peer.com_uuid}?sol={self.star_uuid}"
         for attempt in range(Config.UNREGISTER_RETRY_COUNT):
             try:
-                global_logger.info(f"Sending DELETE request to peer {peer_uuid} at {url}")
+                global_logger.info(f"Sending DELETE request to peer {peer.com_uuid} at {url}")
                 response = requests.delete(url)
                 if response.status_code == 200:
-                    global_logger.info(f"Peer {peer_uuid} unregistered successfully.")
+                    global_logger.info(f"Peer {peer.com_uuid} unregistered successfully.")
                     return
                 elif response.status_code == 401:
-                    global_logger.warning(f"Unauthorized attempt to unregister peer {peer_uuid}. Skipping.")
+                    global_logger.warning(f"Unauthorized attempt to unregister peer {peer.com_uuid}. Skipping.")
                     return
                 else:
-                    global_logger.warning(f"Unexpected response from peer {peer_uuid}: {response.status_code}")
+                    global_logger.warning(f"Unexpected response from peer {peer.com_uuid}: {response.status_code}")
             except requests.RequestException as e:
-                global_logger.error(f"Failed to contact peer {peer_uuid}: {e}")
+                global_logger.error(f"Failed to contact peer {peer.com_uuid}: {e}")
 
             global_logger.warning(
-                f"Retrying DELETE request to peer {peer_uuid}... ({attempt + 1}/{Config.UNREGISTER_RETRY_COUNT})"
+                f"Retrying DELETE request to peer {peer.com_uuid}... ({attempt + 1}/{Config.UNREGISTER_RETRY_COUNT})"
             )
             time.sleep(Config.UNREGISTER_RETRY_DELAY)
 
-        global_logger.error(f"Failed to unregister peer {peer_uuid} after {Config.UNREGISTER_RETRY_COUNT} attempts.")
-        peer["status"] = "disconnected"
+        global_logger.error(f"Failed to unregister peer {peer.com_uuid} after {Config.UNREGISTER_RETRY_COUNT} attempts.")
+        peer.status = "disconnected"
 
     def add_peer(self, peer):
         with self._peers_lock:

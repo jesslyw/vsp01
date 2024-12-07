@@ -1,38 +1,38 @@
 from app.config import Config
 from flask import request, jsonify
 from utils.logger import global_logger
-from datetime import datetime
+
+from model.peer import Peer
 
 
-def initialize_flask_endpoints(app, peerService, sol_service):
-
+def initialize_flask_endpoints(app, peer_service, sol_service):
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
     def get_status(com_uuid):
         """
-        Behandelt GET-Anfragen für den Status des Peers.
+        PEER_API: Behandelt GET-Anfragen für den Status des Peers.
         """
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
         # Validierung
-        if not star_uuid or star_uuid != peerService.peer.star_uuid:
+        if not star_uuid or star_uuid != peer_service.peer.star_uuid:
             return "Unauthorized", 401
-        if com_uuid != peerService.peer.com_uuid:
+        if com_uuid != peer_service.peer.com_uuid:
             return "Conflict", 409
 
         # Status zurückgeben
         return jsonify({
-            "star": peerService.peer.star_uuid,
-            "sol": peerService.peer.sol_uuid,
-            "component": peerService.peer.com_uuid,
-            "com-ip": peerService.peer.ip,
-            "com-tcp": peerService.peer.port,
-            "status": 200,  # Oder der aktuelle Status
+            "star": peer_service.peer.star_uuid,
+            "sol": peer_service.peer.sol_uuid,
+            "peer": peer_service.peer.com_uuid,
+            "com-ip": peer_service.peer.ip,
+            "com-tcp": peer_service.peer.port,
+            "status": peer_service.peer.status,
         }), 200
 
     @app.route(f"{Config.API_BASE_URL}<req_com_uuid>?=<req_star_uuid>", methods=['DELETE'])
     def accept_sol_shutdown(req_com_uuid, req_star_uuid):
 
-        if req_com_uuid != peerService.peer.com_uuid or req_star_uuid != peerService.peer.sol_connection.star_uuid:
+        if req_com_uuid != peer_service.peer.com_uuid or req_star_uuid != peer_service.peer.sol_connection.star_uuid:
             return jsonify({"error": "Unexpected request parameters"}), 401
 
         return jsonify({"message": "Shutdown accepted"}), 200
@@ -40,7 +40,7 @@ def initialize_flask_endpoints(app, peerService, sol_service):
     @app.route(Config.API_BASE_URL, methods=['POST'])
     def register_component():
         """
-        Handles registration of a new component.
+        Handles registration of a new peer.
         """
         data = request.get_json()
 
@@ -64,47 +64,47 @@ def initialize_flask_endpoints(app, peerService, sol_service):
             global_logger.warning("Registration failed: SOL is full.")
             return jsonify({"error": "No room left"}), 403
 
-        if any(comp['component'] == component_uuid for comp in sol_service.registered_peers):
+        if any(p.com_uuid == component_uuid for p in sol_service.registered_peers):  # TODO: Hier lock einbauen?
             global_logger.warning(f"Conflict: Component {component_uuid} already registered.")
             return jsonify({"error": "Conflict: Component already registered"}), 409
 
-        component_data = {
-            "component": component_uuid,
-            "com-ip": com_ip,
-            "com-tcp": com_tcp,
-            "status": status
-        }
-        sol_service.registered_peers.append(component_data)
-        global_logger.info(f"Component registered successfully: {component_data}")
-        return jsonify({"message": "Component registered successfully", "details": component_data}), 200
+        peer = Peer(ip=com_ip,
+                    port=com_tcp,
+                    com_uuid=component_uuid,
+                    com_tcp=com_tcp,
+                    status=status)  # TODO: Ist port===com_tcp
+        sol_service.add_peer(peer)
+        global_logger.info(f"Component registered successfully: {peer}")
+        return jsonify({"message": "Component registered successfully", "details": peer.to_dict()}), 200
 
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['GET'])
     def get_component_status(com_uuid):
         """
-        Retrieves the status of a registered component.
+        Retrieves the status of a registered peer.
         """
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
         if not star_uuid or star_uuid != sol_service.star_uuid:
             return jsonify({"error": "Unauthorized: STAR UUID mismatch"}), 401
 
-        component = next((comp for comp in sol_service.registered_peers if comp["component"] == com_uuid), None)
-        if not component:
+        peer = next((p for p in sol_service.registered_peers if p.com_uuid == com_uuid), None)
+        if not peer:
             return jsonify({"error": "Component does not exist"}), 404
 
+        peer.set_last_interaction_timestamp()
         return jsonify({
             Config.STAR_UUID_FIELD: sol_service.star_uuid,
             Config.SOL_UUID_FIELD: sol_service.sol_uuid,
-            Config.COMPONENT_UUID_FIELD: component["component"],
-            Config.COMPONENT_IP_FIELD: component["com-ip"],
-            Config.COMPONENT_TCP_FIELD: component["com-tcp"],
-            Config.STATUS_FIELD: component["status"]
+            Config.COMPONENT_UUID_FIELD: peer.com_uuid,
+            Config.COMPONENT_IP_FIELD: peer.ip,
+            Config.COMPONENT_TCP_FIELD: peer.com_tcp,
+            Config.STATUS_FIELD: peer.status
         }), 200
 
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['DELETE'])
     def unregister_component(com_uuid):
         """
-        Unregisters a registered component from the star.
+        Unregisters a registered peer from the star.
         """
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
         print(f"request: {star_uuid} sol_service.star_uuid {sol_service.star_uuid}")
@@ -112,20 +112,21 @@ def initialize_flask_endpoints(app, peerService, sol_service):
             global_logger.warning(f"Unauthorized unregister attempt for STAR {star_uuid}")
             return "Unauthorized", 401
 
-        component = next((comp for comp in sol_service.registered_peers if comp["component"] == com_uuid), None)
-        if not component:
+        peer = next((p for p in sol_service.registered_peers if p.com_uuid == com_uuid),
+                    None)  # TODO: Hier mit dem Lock arbeiten?
+        if not peer:
             global_logger.warning(f"Component {com_uuid} not found for unregister.")
             return "Not found", 404
 
         requester_ip = request.remote_addr
-        if component[Config.COMPONENT_IP_FIELD] != requester_ip:
+        if peer.ip != requester_ip:
             global_logger.warning(
-                f"Unauthorized unregister attempt from IP {requester_ip} for component {com_uuid}.")
+                f"Unauthorized unregister attempt from IP {requester_ip} for peer {com_uuid}.")
             return "Unauthorized", 401
 
-        component["status"] = "left"
-        component["last_interaction_timestamp"] = datetime.now().isoformat()
-        sol_service.registered_peers.remove(component)
+        peer.status = "left"
+        peer.set_last_interaction_timestamp()
+        sol_service.remove_peer(peer)
         global_logger.info(f"Component {com_uuid} unregistered successfully.")
         return "ok", 200
 
@@ -137,15 +138,15 @@ def initialize_flask_endpoints(app, peerService, sol_service):
         if data["star"] != sol_service.sol.star_uuid or data["sol"] != sol_service.sol.com_uuid:
             return "Unauthorized", 401
 
-        with sol_service._peers_lock:
-            peer = next((p for p in sol_service.registered_peers if p["component"] == com_uuid), None)
+        with sol_service._peers_lock:  # TODO: Auslagern
+            peer = next((p for p in sol_service.registered_peers if p.com_uuid == com_uuid), None)
 
         if not peer:
             return "Not Found", 404
 
-        if peer["com-ip"] != data["com-ip"] or peer["com-tcp"] != data["com-tcp"] or data["status"] != 200:
+        if peer.ip != data["com-ip"] or peer.com_tcp != data["com-tcp"] or data["status"] != 200:
             return "Conflict", 409
 
-        peer["last_interaction_timestamp"] = datetime.now().isoformat()
-        peer["status"] = data["status"]
+        peer.set_last_interaction_timestamp()
+        peer.status = data["status"]
         return "ok", 200
