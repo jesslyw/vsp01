@@ -1,5 +1,5 @@
 # Dockerfile  docker build -t vs:latest .
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
@@ -12,11 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Flask-Umgebung konfigurieren
-ENV FLASK_APP=src.app.main.py
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=5000
+#ENV FLASK_APP=src.main.py
+#ENV FLASK_RUN_HOST=0.0.0.0
+#ENV FLASK_RUN_PORT=5000
 
-EXPOSE 5000
+EXPOSE 8000-9000
+EXPOSE 8000-9000/udp
 
-# Standardbefehl zum Starten der Flask-App
-CMD ["flask", "run"]
+CMD ["sh", "-c", "cd src && python main.py"]

@@ -12,6 +12,7 @@ from service.udp_service import UdpService
 from manager.sol_manager import SolManager
 from service.tcp_service import send_tcp_request
 from model.peer import Peer
+from model.sol import SOL
 from utils.logger import global_logger
 from utils.uuid_generator import UuidGenerator
 
@@ -120,6 +121,7 @@ class PeerService:
 
         self.peer.is_sol = True
         self.peer.com_uuid = com_uuid
+        self.sol_service.sol = SOL(self.peer.com_uuid, star_uuid)
         sol_manager = SolManager(self.sol_service)
         sol_thread = threading.Thread(target=sol_manager.manage())
         sol_thread.start()
@@ -169,8 +171,8 @@ class PeerService:
         Sendet eine Statusmeldung an SOL und informiert den Benutzer über den Statuscode.
         """
         payload = {
-            "star": self.sol_service.star_uuid,
-            "sol": self.sol_service.sol_uuid,
+            "star": self.peer.sol_connection.star_uuid,
+            "sol": self.peer.sol_connection.uuid,
             "component": self.peer.com_uuid,
             "com-ip": self.peer.ip,
             "com-tcp": self.peer.port,

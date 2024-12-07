@@ -5,6 +5,7 @@ from datetime import datetime
 
 
 def initialize_flask_endpoints(app, peerService, sol_service):
+
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
     def get_status(com_uuid):
         """
@@ -133,7 +134,7 @@ def initialize_flask_endpoints(app, peerService, sol_service):
         data = request.get_json()
 
         # Validierung
-        if data["star"] != sol_service.star_uuid or data["sol"] != sol_service.sol_uuid:
+        if data["star"] != sol_service.sol.star_uuid or data["sol"] != sol_service.sol.com_uuid:
             return "Unauthorized", 401
 
         with sol_service._peers_lock:

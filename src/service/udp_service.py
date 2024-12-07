@@ -33,9 +33,7 @@ class UdpService:
         Listen for incoming UDP messages and invoke the callback function if a response is recieved
         """
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            print("about to bind socket...")
             sock.bind(('', port))
-            print("binding successful")
 
             while True:
                 # recvform speichert ankommende Nachrichten im Buffer damit keine verloren gehen

@@ -17,19 +17,6 @@ Dieses Skript startet das Programm. Dazu initialisiert es alle nötigen Datenmod
 # Initialize Flask app
 app = Flask(__name__)
 
-
-# Function to run Flask app
-# def run_flask():
-#     app.run(host=Config.IP, port=Config.STAR_PORT, debug=True)
-#
-#
-# # Start Flask in a separate thread
-# flask_thread = threading.Thread(target=run_flask)
-# flask_thread.start()
-#
-# # Wait for Flask to complete its execution
-# flask_thread.join()
-
 if __name__ == "__main__":
     # Initialize Model, Services and Managers
     peer = Peer(Config.IP, Config.PEER_PORT)
@@ -42,8 +29,6 @@ if __name__ == "__main__":
 
     #start flask-server
     initialize_flask_endpoints(app, peer_service, sol_service)
-    print(Config.IP)
-    print(Config.STAR_PORT)
 
     # start input-reader-thread
     reader = Input_Reader(peer_service, peer)

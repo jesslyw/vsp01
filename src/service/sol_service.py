@@ -23,6 +23,7 @@ class SOLService:
         self._peers_lock = Lock()
         self.num_active_components = 1
         self.max_active_components = 4
+        self.sol = None
 
         # Start the SOL API in a separate thread
         #self.start_sol_api()
@@ -92,10 +93,18 @@ class SOLService:
                 current_time = datetime.now()
                 with self._peers_lock:
                     for peer in self.registered_peers:
-                        last_interaction = datetime.fromisoformat(peer["last_interaction_timestamp"])
-                        if (current_time - last_interaction).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
-                            global_logger.warning(f"Component {peer['component']} is inactive. Checking stauts.")
-                            self.check_component_status(peer)
+
+                        print(peer["component"])
+                        print(self.peer.com_uuid)
+
+                        if peer["component"] == self.peer.com_uuid:
+                            print("ignoring")
+                            continue
+
+                        # last_interaction = datetime.fromisoformat(peer["last_interaction_timestamp"])
+                        # if (current_time - last_interaction).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
+                        #     global_logger.warning(f"Component {peer['component']} is inactive. Checking stauts.")
+                        #     self.check_component_status(peer)
                 time_after_check = datetime.now()
                 time_elapsed = int((time_after_check-current_time).total_seconds())
                 time.sleep(Config.PEER_INACTIVITY_THRESHOLD-time_elapsed)
