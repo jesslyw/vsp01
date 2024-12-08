@@ -18,8 +18,17 @@ Dieses Skript startet das Programm. Dazu initialisiert es alle nötigen Datenmod
 app = Flask(__name__)
 
 if __name__ == "__main__":
+
+    # parse potential port-argument
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-port', type=int, required=False)
+    args = parser.parse_args()
+
+    if args.port:
+        Config.STAR_PORT = args.port
+
     # Initialize Model, Services and Managers
-    peer = Peer(Config.IP, Config.PEER_PORT)
+    peer = Peer(Config.IP, Config.STAR_PORT)
 
     sol_service = SOLService(peer)
 

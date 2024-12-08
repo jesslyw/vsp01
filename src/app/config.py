@@ -4,8 +4,7 @@ import socket
 
 class Config:
     # Netzwerk- und API-Konfiguration
-    STAR_PORT = 8000
-    PEER_PORT = 8000
+    STAR_PORT = 8121
     IP = socket.gethostbyname(socket.gethostname())
     API_BASE_URL = "/vs/v1/system/"
 

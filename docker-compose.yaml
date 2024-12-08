@@ -1,4 +1,5 @@
 #docker-compose run --rm server -> Damit kannst du deinen Container mit Shell-Zugriff starten
+#docker-compose run --rm server -port xxxx -> Damit startet man die App auf einem bestimmten port
 #docker exec -it <container_name> /bin/bash -> gewährt konsolenzugriff
 services:
   server:

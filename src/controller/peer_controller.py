@@ -46,4 +46,4 @@ class PeerController:
         """
         Startet die REST-API des Peers.
         """
-        self.app.run(host=Config.IP, port=Config.PEER_PORT, debug=False)
+        self.app.run(host=Config.IP, port=Config.STAR_PORT, debug=False)

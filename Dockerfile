@@ -2,14 +2,14 @@
 FROM python:3.11-slim
 
 # Arbeitsverzeichnis setzen
-WORKDIR /app
+WORKDIR /app/src
 
 # Anforderungen kopieren und installieren
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r ../requirements.txt
 
-# Flask-App kopieren
-COPY . .
+# App kopieren
+COPY src/ /app/src
 
 # Flask-Umgebung konfigurieren
 #ENV FLASK_APP=src.main.py
@@ -19,4 +19,4 @@ COPY . .
 EXPOSE 8000-9000
 EXPOSE 8000-9000/udp
 
-CMD ["sh", "-c", "cd src && python main.py"]
+ENTRYPOINT ["python", "main.py"]
