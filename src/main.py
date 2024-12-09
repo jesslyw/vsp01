@@ -1,6 +1,7 @@
-import os
+
 import threading
-import socket
+
+from flasgger import Swagger
 from flask import Flask
 from manager.peer_manager import PeerManager
 from app.config import Config
@@ -9,6 +10,7 @@ from service.peer_service import PeerService
 from service.sol_service import SOLService
 from service.input_reader import Input_Reader
 from controller.controller import initialize_flask_endpoints
+import os
 
 """
 Dieses Skript startet das Programm. Dazu initialisiert es alle nötigen Datenmodelle und Services.
@@ -16,6 +18,11 @@ Dieses Skript startet das Programm. Dazu initialisiert es alle nötigen Datenmod
 
 # Initialize Flask app
 app = Flask(__name__)
+
+
+
+swagger = Swagger(app, template_file=os.path.join(os.getcwd(), "docs", "swagger.yml"))
+
 
 if __name__ == "__main__":
     # Initialize Model, Services and Managers
@@ -39,3 +46,4 @@ if __name__ == "__main__":
     peer_thread.start()
 
     app.run(host=Config.IP, port=Config.STAR_PORT)
+
