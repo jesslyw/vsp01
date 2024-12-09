@@ -1,3 +1,4 @@
+import os
 import sys
 import threading
 import time
@@ -18,9 +19,10 @@ from utils.uuid_generator import UuidGenerator
 
 
 class PeerService:
-    def __init__(self, peer, sol_service):
+    def __init__(self, peer, sol_service, shutdown_event):
         self.peer = peer
         self.sol_service = sol_service
+        self.shutdown_event = shutdown_event
 
     def broadcast_hello_and_initialize(self):
         """
@@ -28,7 +30,7 @@ class PeerService:
         """
         global_logger.info("Broadcasting HELLO? to discover SOL...")
 
-        for attempt in range(Config.STATUS_UPDATE_MAX_ATTEMPTS - 1):
+        for attempt in range(Config.BROADCAST_RETRY_ATTEMPTS):
             # Broadcast HELLO?
             try:
                 UdpService.broadcast_message(Config.STAR_PORT, "HELLO?")
@@ -221,9 +223,10 @@ class PeerService:
         """
         Beendet den Peer-Prozess sauber.
         """
-        # TODO: Was muss hier noch rein? Thread beenden?
-        global_logger.error("Shutting down peer due to failed status updates.")
-        sys.exit(1)
+        global_logger.error("Shutting down peer due to failed status updates.")  
+        os._exit(0)
+       
+
 
     def send_exit_request(self):
         """
@@ -252,7 +255,7 @@ class PeerService:
                 global_logger.error(f"Error sending EXIT request: {e}")
 
             global_logger.warning(f"Retrying EXIT request... ({attempt + 1}/{Config.EXIT_REQUEST_RETRIES})")
-            time.sleep(Config.EXIT_REQUEST_WAIT)
+            time.sleep(Config.EXIT_REQUEST_WAIT[attempt])
 
         global_logger.error("Failed to unregister after retries. Exiting forcefully.")
-        return False
+        os.exit(1)
