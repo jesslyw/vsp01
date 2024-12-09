@@ -9,7 +9,6 @@ from utils.logger import global_logger
 from utils.uuid_generator import UuidGenerator
 
 
-# TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?
 class SOLService:
     def __init__(self, peer, star_port=None):
         self.peer = peer
@@ -18,6 +17,7 @@ class SOLService:
         self.star_port = star_port or Config.STAR_PORT
         self.num_active_components = 1
         self.sol = None
+
 
     def listen_for_hello(self):
         """Listens for HELLO? messages and responds with the required JSON blob."""
@@ -79,7 +79,7 @@ class SOLService:
 
                         last_interaction = datetime.fromisoformat(peer.last_interaction_timestamp)
                         if (current_time - last_interaction).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
-                            global_logger.warning(f"Component {peer.component} is inactive. Checking status.")
+                            global_logger.warning(f"Component {peer.com_uuid} is inactive. Checking status.")
                             self.check_component_status(peer)
                 time_after_check = datetime.now()
                 time_elapsed = int((time_after_check-current_time).total_seconds())

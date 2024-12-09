@@ -17,6 +17,7 @@ from utils.logger import global_logger
 from utils.uuid_generator import UuidGenerator
 
 
+
 class PeerService:
     def __init__(self, peer, sol_service):
         self.peer = peer
@@ -172,12 +173,12 @@ class PeerService:
         }
 
         url = f"http://{self.peer.sol_connection.ip}:{self.peer.sol_connection.port}/vs/v1/system/{self.peer.com_uuid}"
-        global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
+       # global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
 
         try:
             response = requests.patch(url, json=payload, timeout=5)
             if response.status_code == 200:
-                global_logger.info(f"Status update to SOL successful: {response.text}")
+               # global_logger.info(f"Status update to SOL successful: {response.text}")
                 return True
             elif response.status_code == 401:
                 global_logger.warning(
@@ -202,15 +203,14 @@ class PeerService:
         while True:
             success = self.send_status_update()
             if success:
-                global_logger.info("Periodic status update successful.")
+               # global_logger.info("Periodic status update successful.")
                 attempt = 0  # Rücksetzen der Versuche bei Erfolg
                 time.sleep(Config.STATUS_UPDATE_INTERVAL)  # Wartezeit bis zum nächsten Update
             else:
                 attempt += 1
                 retry_interval = Config.STATUS_UPDATE_RETRY_INTERVALS[
                     min(attempt - 1, len(Config.STATUS_UPDATE_RETRY_INTERVALS) - 1)]
-                global_logger.warning(
-                    f"Retrying status update... Attempt {attempt}/{Config.STATUS_UPDATE_MAX_ATTEMPTS}")
+              #  global_logger.warning(f"Retrying status update... Attempt {attempt}/{Config.STATUS_UPDATE_MAX_ATTEMPTS}")
                 time.sleep(retry_interval)
 
                 if attempt >= Config.STATUS_UPDATE_MAX_ATTEMPTS:

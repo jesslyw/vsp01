@@ -15,6 +15,7 @@ class SOL:
         self.registered_peers = []
         self.peers_lock = Lock()
 
+
     def add_peer(self, peer):
         with self.peers_lock:
             self.registered_peers.append(peer)

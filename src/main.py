@@ -12,6 +12,8 @@ from service.input_reader import Input_Reader
 from controller.controller import initialize_flask_endpoints
 import os
 
+from service.message_service import MessageService
+
 """
 Dieses Skript startet das Programm. Dazu initialisiert es alle nötigen Datenmodelle und Services.
 """
@@ -34,11 +36,13 @@ if __name__ == "__main__":
 
     peer_manager = PeerManager(peerService=peer_service)
 
+    message_service= MessageService()
+
     #start flask-server
-    initialize_flask_endpoints(app, peer_service, sol_service)
+    initialize_flask_endpoints(app, peer_service, sol_service, message_service)
 
     # start input-reader-thread
-    reader = Input_Reader(peer_service, peer)
+    reader = Input_Reader(peer_service, peer, message_service)
     reader_thread = threading.Thread(target=reader.read_input)
     reader_thread.start()
 

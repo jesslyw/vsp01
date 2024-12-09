@@ -1,11 +1,17 @@
 from app.config import Config
+
+
 from flask import request, jsonify
 from utils.logger import global_logger
 
 from model.peer import Peer
 
+from model.message import Message
 
-def initialize_flask_endpoints(app, peer_service, sol_service):
+from model import peer
+
+
+def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
     """
     Initializes Flask API endpoints for managing peers and components.
     """
@@ -22,6 +28,7 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
     def get_status(com_uuid):
         """
                 Retrieves the status of the peer based on the com_uuid.
+
         """
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
@@ -44,6 +51,7 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
             "status": peer_service.peer.status,
         }), 200
 
+
     @app.route(f"{Config.API_BASE_URL}<req_com_uuid>?=<req_star_uuid>", methods=['DELETE'])
     def accept_sol_shutdown(req_com_uuid, req_star_uuid):
         """
@@ -56,6 +64,7 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
                 "Unauthorized request: Mismatched STAR or Component UUID.", 401)
 
         return jsonify({"message": "Shutdown accepted"}), 200
+
 
     @app.route(Config.API_BASE_URL, methods=['POST'])
     def register_component():
@@ -102,7 +111,8 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
         # TODO: Ist port===com_tcp
         sol_service.sol.add_peer(peer)
         global_logger.info(f"Component registered successfully: {peer}")
-        return jsonify({"message": "Component registered successfully", "details": peer.to_dict()}), 200
+        return jsonify({"message": "Component registered successfully", "details": peer.com_uuid}), 200
+
 
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['GET'])
     def get_component_status(com_uuid):
@@ -130,6 +140,7 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
             Config.STATUS_FIELD: peer.status
         }), 200
 
+
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['DELETE'])
     def unregister_component(com_uuid):
         """
@@ -156,6 +167,7 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
         global_logger.info(f"Component {com_uuid} unregistered successfully.")
         return "ok", 200
 
+
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["PATCH"])
     def update_component_status(com_uuid):
         data = request.get_json()
@@ -179,3 +191,86 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
         peer.set_last_interaction_timestamp()
         peer.status = data[Config.STATUS_FIELD]
         return jsonify({"message": "Status updated successfully"}), 200
+
+
+    @app.route(f"{Config.API_BASE_URL}messages", methods=["POST"])
+    def create_message():
+        data = request.get_json()
+        star_uuid = data.get(Config.STAR_UUID_FIELD)
+        origin = data.get("origin")
+        sender = data.get("sender", "")
+        subject = data.get("subject", "")
+        message = data.get("message", "")
+
+        # Validierungen
+        if star_uuid != sol_service.star_uuid:
+            return jsonify({"error": "Unauthorized: Invalid STAR UUID."}), 401
+        if not origin or not subject.strip():
+            return jsonify({"error": "Precondition failed: Missing required fields."}), 412
+
+        msg_id = data.get("msg-id", "")
+        if not msg_id:
+            msg_id = message_service.generate_msg_id(origin if "@" not in origin else peer.com_uuid)
+
+        # Überprüfen, ob die Nachricht existiert
+        if msg_id in message_service.messages:
+            return jsonify({"error": "Conflict: Message ID already exists."}), 404
+
+        new_message = Message(origin, sender, subject, message, msg_id)
+        message_service.add_message(new_message)
+
+        return jsonify({"msg-id": msg_id}), 200
+
+
+    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["DELETE"])
+    def delete_message(msg_id):
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+
+        if star_uuid != sol_service.star_uuid:
+            return jsonify({"error": "Unauthorized: Invalid STAR UUID."}), 401
+
+        if not message_service.delete_message(msg_id):
+            return jsonify({"error": "Message not found."}), 404
+
+        return "ok", 200
+
+
+    @app.route(f"{Config.API_BASE_URL}messages", methods=["GET"])
+    def list_messages():
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+        scope = request.args.get("scope", "active")
+        view = request.args.get("view", "id")
+
+        if star_uuid != sol_service.star_uuid:
+            return jsonify({"error": "Unauthorized: Invalid STAR UUID."}), 401
+
+        messages = message_service.list_messages(scope=scope, view=view)
+        return jsonify({
+            "star": star_uuid,
+            "totalResults": len(messages),
+            "scope": scope,
+            "view": view,
+            "messages": messages,
+        }), 200
+
+
+    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["GET"])
+    def get_message(msg_id):
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+
+        if star_uuid != sol_service.star_uuid:
+            return jsonify({"error": "Unauthorized: Invalid STAR UUID."}), 401
+
+        message = message_service.get_message(msg_id)
+        if not message:
+            return jsonify({
+                "star": star_uuid,
+                "totalResults": 0,
+                "messages": [],
+            }), 404
+
+        return jsonify({
+            "star": star_uuid,
+            "totalResults": 1,
+            "messages": [message.to_dict(view="header" if message.status == "active" else "id")],
+        }), 200
