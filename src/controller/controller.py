@@ -222,8 +222,9 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
 
         return jsonify({"msg-id": msg_id}), 200
 
-    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>?star=<star_uuid>", methods=["DELETE"])
-    def delete_message(msg_id, star_uuid):
+    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["DELETE"])
+    def delete_message(msg_id):
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
         if not validate_star_uuid(star_uuid, sol_service.star_uuid):
             return error_response(f"Unauthorized: Invalid STAR UUID {star_uuid}",
@@ -278,9 +279,7 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
             }), 404
 
         message = message_service.get_message(msg_id)
-        is_deleted = message_service.delete_message(msg_id)
-
-        if not is_deleted:
+        if not message:
             return jsonify({
                 "star": star_uuid,
                 "totalResults": 0,

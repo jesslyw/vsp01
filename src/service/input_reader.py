@@ -86,10 +86,10 @@ class Input_Reader:
         Handles the deletion of a message.
         """
         try:
-            # star_uuid = input("Enter STAR-UUID: ").strip()
-            # if not star_uuid:
-            #     print("STAR-UUID is required.")
-            #     return
+            star_uuid = input("Enter STAR-UUID: ").strip()
+            if not star_uuid:
+                print("STAR-UUID is required.")
+                return
 
             success = self.message_service.send_delete_message_request(
                 self.peerService.peer.sol_connection.ip,
