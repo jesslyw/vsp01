@@ -1,6 +1,5 @@
 from app.config import Config
 
-
 from flask import request, jsonify
 from utils.logger import global_logger
 
@@ -51,7 +50,6 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
             "status": peer_service.peer.status,
         }), 200
 
-
     @app.route(f"{Config.API_BASE_URL}<req_com_uuid>?=<req_star_uuid>", methods=['DELETE'])
     def accept_sol_shutdown(req_com_uuid, req_star_uuid):
         """
@@ -64,7 +62,6 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
                 "Unauthorized request: Mismatched STAR or Component UUID.", 401)
 
         return jsonify({"message": "Shutdown accepted"}), 200
-
 
     @app.route(Config.API_BASE_URL, methods=['POST'])
     def register_component():
@@ -113,7 +110,6 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
         global_logger.info(f"Component registered successfully: {peer}")
         return jsonify({"message": "Component registered successfully", "details": peer.com_uuid}), 200
 
-
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['GET'])
     def get_component_status(com_uuid):
         """
@@ -139,7 +135,6 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
             Config.COMPONENT_TCP_FIELD: peer.com_tcp,
             Config.STATUS_FIELD: peer.status
         }), 200
-
 
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['DELETE'])
     def unregister_component(com_uuid):
@@ -167,7 +162,6 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
         global_logger.info(f"Component {com_uuid} unregistered successfully.")
         return "ok", 200
 
-
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["PATCH"])
     def update_component_status(com_uuid):
         data = request.get_json()
@@ -192,7 +186,7 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
         peer.status = data[Config.STATUS_FIELD]
         return jsonify({"message": "Status updated successfully"}), 200
 
-
+    # TODO: Funktioniert aktuell komplett unabhängig von SOL. In der Aufgabe steht aber, dass nur SOL das kann, also eventuell sol_service.message_service?
     @app.route(f"{Config.API_BASE_URL}messages", methods=["POST"])
     def create_message():
         data = request.get_json()
@@ -203,46 +197,62 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
         message = data.get("message", "")
 
         # Validierungen
-        if star_uuid != sol_service.star_uuid:
-            return jsonify({"error": "Unauthorized: Invalid STAR UUID."}), 401
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized update request with STAR UUID: {data[Config.STAR_UUID_FIELD]}",
+                                  "Unauthorized: Invalid STAR UUID.", 401)
         if not origin or not subject.strip():
-            return jsonify({"error": "Precondition failed: Missing required fields."}), 412
+            return error_response("Precondition failed: Missing required field subject.",
+                                  "Precondition failed: Missing required fields.", 412)
 
-        msg_id = data.get("msg-id", "")
-        if not msg_id:
-            msg_id = message_service.generate_msg_id(origin if "@" not in origin else peer.com_uuid)
+        # "Die <MSG-UUID> wird im Body immer leer gelassen, weil SOL für die Vergabe zuständig ist." aus der Aufgabe
+        # msg_id = data.get("msg-id", "")
+        # if not msg_id:
+        #     msg_id = message_service.generate_msg_id(origin if "@" not in origin else peer.com_uuid)
+        msg_id = message_service.generate_msg_id(origin if "@" not in origin else peer.com_uuid)
 
         # Überprüfen, ob die Nachricht existiert
         if msg_id in message_service.messages:
-            return jsonify({"error": "Conflict: Message ID already exists."}), 404
+            return error_response(f"Conflict: Message ID {msg_id}already exists.",
+                                  "Conflict: Message ID already exists.", 404)
 
         new_message = Message(origin, sender, subject, message, msg_id)
         message_service.add_message(new_message)
 
+        # TODO: Sollte hier nochmal last_interaction_timestamp gesetzt werden?
+
         return jsonify({"msg-id": msg_id}), 200
 
+    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>?star=<star_uuid>", methods=["DELETE"])
+    def delete_message(msg_id, star_uuid):
 
-    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["DELETE"])
-    def delete_message(msg_id):
-        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
-
-        if star_uuid != sol_service.star_uuid:
-            return jsonify({"error": "Unauthorized: Invalid STAR UUID."}), 401
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized: Invalid STAR UUID {star_uuid}",
+                                  "Unauthorized: Invalid STAR UUID.", 401)
 
         if not message_service.delete_message(msg_id):
-            return jsonify({"error": "Message not found."}), 404
-
+            return error_response( f"Message with ID {msg_id} not found",
+                                   "Message not found.", 404)
         return "ok", 200
 
-
+    # TODO: "Alle Komponenten, die in den Stern integriert sind – also auch SOL, können die Liste der Nachrichten abfragen." also doch nicht sol_service.message_service?
     @app.route(f"{Config.API_BASE_URL}messages", methods=["GET"])
     def list_messages():
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+        allowed_scopes = {"active", "all"}
+        allowed_views = {"id", "header"}
+
         scope = request.args.get("scope", "active")
         view = request.args.get("view", "id")
 
-        if star_uuid != sol_service.star_uuid:
-            return jsonify({"error": "Unauthorized: Invalid STAR UUID."}), 401
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized: Invalid STAR UUID {star_uuid}",
+                                  "Unauthorized: Invalid STAR UUID.", 401)
+        if scope not in allowed_scopes:
+            return error_response(f"Invalid scope value {scope}",
+                                  "Invalid scope value.", 400)
+        if view not in allowed_views:
+            return error_response(f"Invalid view value {view}",
+                                  "Invalid view value.", 400)
 
         messages = message_service.list_messages(scope=scope, view=view)
         return jsonify({
@@ -253,16 +263,24 @@ def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
             "messages": messages,
         }), 200
 
-
     @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["GET"])
     def get_message(msg_id):
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
-        if star_uuid != sol_service.star_uuid:
-            return jsonify({"error": "Unauthorized: Invalid STAR UUID."}), 401
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized: Invalid STAR UUID {star_uuid}",
+                                  "Unauthorized: Invalid STAR UUID.", 401)
+        if not msg_id:
+            return jsonify({
+                "star": star_uuid,
+                "totalResults": 0,
+                "messages": [],
+            }), 404
 
         message = message_service.get_message(msg_id)
-        if not message:
+        is_deleted = message_service.delete_message(msg_id)
+
+        if not is_deleted:
             return jsonify({
                 "star": star_uuid,
                 "totalResults": 0,

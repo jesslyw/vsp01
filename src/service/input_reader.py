@@ -58,7 +58,7 @@ class Input_Reader:
         Handles the interactive creation of a message.
         """
         try:
-            #star_uuid = input("Enter STAR-UUID: ").strip()
+            star_uuid = input("Enter STAR-UUID: ").strip()
             #origin = input("Enter Origin (COM-UUID or Email): ").strip()
             #sender = input("Enter Sender (COM-UUID or leave empty): ").strip()
             subject = input("Enter Subject: ").strip()

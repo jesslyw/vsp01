@@ -6,7 +6,7 @@ class Message:
         self.msg_id = msg_id
         self.origin = origin
         self.sender = sender
-        self.subject = subject.split('\n', 1)[0].replace('\r', '')  # Kürzen auf die erste Zeile
+        self.subject = subject.split('\n', 1)[0].replace('\r', '')  # Kürzen auf die erste Zeile #TODO: Wie sicherstellen, dass das Subject und die Message beide in UTF-8 sind?
         self.message = message
         self.version = version
         self.status = "active"
