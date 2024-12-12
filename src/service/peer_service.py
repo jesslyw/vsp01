@@ -19,10 +19,9 @@ from utils.uuid_generator import UuidGenerator
 
 
 class PeerService:
-    def __init__(self, peer, sol_service, shutdown_event):
+    def __init__(self, peer, sol_service):
         self.peer = peer
         self.sol_service = sol_service
-        self.shutdown_event = shutdown_event
 
     def broadcast_hello_and_initialize(self):
         """

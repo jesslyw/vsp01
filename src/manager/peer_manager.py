@@ -9,7 +9,6 @@ class PeerManager:
     def __init__(self, app, peerService):
         self.peerService = peerService
         self.app = app
-
         self.is_sol = self.peerService.peer.is_sol
 
     def run_flask(self):
@@ -24,7 +23,7 @@ class PeerManager:
         # Search for a star
         responses = self.peerService.broadcast_hello_and_initialize()
 
-        if responses == None:  # no response, become sol and start the sol controller
+        if responses == None:  # if no response, become sol and start the sol controller
             self.is_sol = True
             self.peerService.initialize_as_sol(self.app)
 
@@ -39,6 +38,7 @@ class PeerManager:
         if status != 200:
             os.abort()  # exit program if registration fails
 
+        # registration with star successful
         # initialize peer endpoints and start flask server in a new thread
         peer_controller.initialize_peer_endpoints(self.app, self.peerService)
         flask_thread = threading.Thread(target=self.run_flask)

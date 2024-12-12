@@ -12,7 +12,7 @@ from utils.uuid_generator import UuidGenerator
 
 
 # TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?
-class SOLService:
+class SolService:
     def __init__(self, peer, star_port=None):
         self.peer = peer
         self.star_uuid = None

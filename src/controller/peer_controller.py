@@ -48,7 +48,6 @@ def initialize_peer_endpoints(app, peer_service):
 
         @after_this_request
         def shutdown(response):
-            # global_logger.info("Shutdown accepted, preparing to exit.")
             # Run shutdown in a separate thread to avoid blocking response
             threading.Thread(target=shutdown_system).start()
             return response
@@ -56,10 +55,9 @@ def initialize_peer_endpoints(app, peer_service):
         return jsonify({"message": "Shutdown accepted, exiting."}), 200
 
     def shutdown_system():
-        # global_logger.info("Waiting for the response to be sent before shutting down...")
-        time.sleep(1)  # Add a small delay before exiting to ensure response is sent
-
+        # delay slightly before exiting to ensure response message to sol is sent
+        time.sleep(1)
         # Push the Flask application context to the new thread
         with app.app_context():
             global_logger.info("Shutting down system...")
-            os._exit(Config.EXIT_CODE_ERROR)  # Exit with the defined error code
+            os._exit(Config.EXIT_CODE_ERROR)
