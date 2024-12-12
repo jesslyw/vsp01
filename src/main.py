@@ -31,9 +31,7 @@ if __name__ == "__main__":
 
     peer_service = PeerService(peer, sol_service, shutdown_event)
 
-    peer_manager = PeerManager(peerService=peer_service)
-
-    initialize_flask_endpoints(app, peer_service, sol_service)
+    peer_manager = PeerManager(app, peerService=peer_service)
 
     # start input-reader-thread
     reader = Input_Reader(peer_service, sol_service, peer)
@@ -43,5 +41,3 @@ if __name__ == "__main__":
     # start peer thread
     peer_thread = threading.Thread(target=peer_manager.manage)
     peer_thread.start()
-
-    app.run(host=Config.IP, port=Config.STAR_PORT)

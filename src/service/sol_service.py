@@ -140,8 +140,7 @@ class SOLService:
 
     def _unregister_peer(self, peer):
         """Helper method to unregister a single peer."""
-        # url: changed star= to sol= to differentiate delete endpoints
-        url = f"http://{peer.ip}:{peer.com_tcp}/vs/v1/system/{peer.com_uuid}?sol={self.star_uuid}"
+        url = f"http://{peer.ip}:{peer.com_tcp}/vs/v1/system/{peer.com_uuid}?star={self.star_uuid}"
         for attempt in range(Config.UNREGISTER_RETRY_COUNT):
             try:
                 global_logger.info(
