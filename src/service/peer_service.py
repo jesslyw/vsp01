@@ -224,7 +224,7 @@ class PeerService:
         Beendet den Peer-Prozess sauber.
         """
         global_logger.error("Shutting down peer due to failed status updates.")  
-        os._exit(0)
+        os._exit(Config.EXIT_CODE_ERROR)
        
 
 
@@ -234,21 +234,21 @@ class PeerService:
         """
         if self.peer.sol_connection is None:
             global_logger.info(f"Component shut down via terminal.")
-            return
+            os._exit(Config.EXIT_CODE_SUCCESS)
         url = f"http://{self.peer.sol_connection.ip}:{self.peer.sol_connection.port}/vs/v1/system/{self.peer.com_uuid}?star={self.peer.sol_connection.star_uuid}"
         for attempt in range(Config.EXIT_REQUEST_RETRIES):
             try:
                 global_logger.info(f"Sending EXIT request to SOL at {url}")
                 response = requests.delete(url)
                 if response.status_code == 200:
-                    global_logger.info("Component successfully unregistered from SOL.")
-                    return True
+                    global_logger.info("Component successfully unregistered from SOL. Exiting")
+                    os._exit(Config.EXIT_CODE_SUCCESS)
                 elif response.status_code == 401:
                     global_logger.warning("Unauthorized to unregister from SOL. Exiting with error.")
-                    return False
+                    os._exit(Config.EXIT_CODE_ERROR)
                 elif response.status_code == 404:
                     global_logger.warning("Component not found in SOL. Exiting with error.")
-                    return False
+                    os._exit(Config.EXIT_CODE_ERROR)
                 else:
                     global_logger.warning(f"Unexpected response: {response.status_code} {response.text}")
             except requests.RequestException as e:
@@ -258,4 +258,4 @@ class PeerService:
             time.sleep(Config.EXIT_REQUEST_WAIT[attempt])
 
         global_logger.error("Failed to unregister after retries. Exiting forcefully.")
-        os.exit(1)
+        os._exit(Config.EXIT_CODE_ERROR)

@@ -10,27 +10,23 @@ This method is supposed to be started in a thread.
 
 class Input_Reader:
 
-    def __init__(self, peerService, model, shutdown_event):
+    def __init__(self, peerService, solService, model):
         self.peerService = peerService
         self.component = model
-        self.solService = None
-        self.shutdown_event = shutdown_event
+        self.solService = solService
     
 
     def read_input(self):
-
-            while not self.shutdown_event.is_set(): 
+            while True:
                 try:
                     print("Waiting for user input...")
                     user_input = input()
                     print("After waiting for user input...")
-                    if user_input == "EXIT":
-                        self.peerService.send_exit_request()
+                    if user_input == "EXIT":                        
                         if self.component.is_sol:
-                            pass
+                            self.solService.unregister_all_peers_and_exit()
                         else:
                             self.peerService.send_exit_request()
-                        os.abort()
                     elif user_input == "CRASH":
                         os.abort()
                     else:
@@ -38,7 +34,6 @@ class Input_Reader:
                 except Exception as e:
                     print(f"Error while reading input: {e}")
 
-            global_logger.info("event set - exiting input reader")
-            sys.exit(0)    
+
 
 
