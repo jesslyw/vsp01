@@ -96,15 +96,12 @@ def initialize_sol_endpoints(app, sol_service):
             200,
         )
 
-    @app.route(
-        f"{Config.API_BASE_URL}<com_uuid>?star=<req_star_uuid>", methods=["DELETE"]
-    )
+    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["DELETE"])
     def unregister_component(com_uuid):
         """
         Unregisters a registered peer from the star.
         """
-        # star_uuid = request.args.get(Config.STAR_UUID_FIELD)
-        star_uuid = star_uuid = request.args.get("star")
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
         print(f"request: {star_uuid} sol_service.star_uuid {sol_service.star_uuid}")
         if not star_uuid or star_uuid != sol_service.star_uuid:
             global_logger.warning(
