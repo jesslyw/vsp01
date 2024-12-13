@@ -16,25 +16,8 @@ class SOLService:
         self.star_uuid = None
         self.sol_uuid = None
         self.star_port = star_port or Config.STAR_PORT
-        self.registered_peers = []
-        self._peers_lock = Lock()
         self.num_active_components = 1
-        self.max_active_components = 4
         self.sol = None
-
-        # Start the SOL API in a separate thread
-        #self.start_sol_api()
-
-    def start_sol_api(self):
-        """Starts the SOL API in a separate thread."""
-        try:
-            #app = create_sol_api(self) #TODO: was ist hier los? Soll das so? Kann das Weg?
-            #app.run(port=Config.STAR_PORT, debug=False)
-            # api_thread = threading.Thread(target=app.run, kwargs={"port": Config.PEER_PORT, "debug": False}, daemon=True)
-            # api_thread.start()
-            global_logger.info(f"SOL API started on port {Config.STAR_PORT}")  # TODO: Ist das der richtige Port?
-        except Exception as e:
-            global_logger.error(f"Failed to start SOL API: {e}")
 
     def listen_for_hello(self):
         """Listens for HELLO? messages and responds with the required JSON blob."""
@@ -88,8 +71,8 @@ class SOLService:
         while True:
             try:
                 current_time = datetime.now()
-                with self._peers_lock:
-                    for peer in self.registered_peers:
+                with self.sol.peers_lock:
+                    for peer in self.sol.registered_peers:
 
                         if peer.com_uuid == self.peer.com_uuid:
                             continue
@@ -107,10 +90,10 @@ class SOLService:
     def unregister_all_peers_and_exit(self):
         """Unregister all peers from the star and exit SOL."""
         global_logger.info("Unregistering all peers before exiting...")
-        with self._peers_lock:
-            for peer in self.registered_peers:
+        with self.sol.peers_lock:
+            for peer in self.sol.registered_peers:
                 self._unregister_peer(peer)
-            self.registered_peers.clear()
+            self.sol.registered_peers.clear()
 
         global_logger.info("All peers processed. Exiting SOL...")
         sys.exit(Config.SOL_EXIT_CODE) #TODO: Hier shutdown methode ausführen, was ist mit den Threads?
@@ -141,11 +124,3 @@ class SOLService:
 
         global_logger.error(f"Failed to unregister peer {peer.com_uuid} after {Config.UNREGISTER_RETRY_COUNT} attempts.")
         peer.status = "disconnected"
-
-    def add_peer(self, peer):
-        with self._peers_lock:
-            self.registered_peers.append(peer)
-
-    def remove_peer(self, peer):
-        with self._peers_lock:
-            self.registered_peers.remove(peer)

@@ -6,18 +6,33 @@ from model.peer import Peer
 
 
 def initialize_flask_endpoints(app, peer_service, sol_service):
+    """
+    Initializes Flask API endpoints for managing peers and components.
+    """
+
+    def error_response(logger_message, error_message, status_code):
+        """Generates a standardized error response."""
+        global_logger.error(logger_message)
+        return jsonify({"error": error_message}), status_code
+
+    def validate_star_uuid(star_uuid, expected_star_uuid):
+        return star_uuid == expected_star_uuid
+
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
     def get_status(com_uuid):
         """
-        PEER_API: Behandelt GET-Anfragen für den Status des Peers.
+                Retrieves the status of the peer based on the com_uuid.
         """
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
         # Validierung
-        if not star_uuid or star_uuid != peer_service.peer.star_uuid:
-            return "Unauthorized", 401
+        if not validate_star_uuid(star_uuid, peer_service.peer.star_uuid):
+            return error_response(f"Unauthorized access attempt with STAR UUID: {star_uuid}",
+                                  "Unauthorized access: Invalid or missing STAR UUID.", 401)
         if com_uuid != peer_service.peer.com_uuid:
-            return "Conflict", 409
+            return error_response(
+                f"Conflict: Component UUID mismatch. Requested: {com_uuid}, Expected: {peer_service.peer.com_uuid}",
+                "Conflict: Component UUID does not match the requested UUID.", 409)
 
         # Status zurückgeben
         return jsonify({
@@ -31,9 +46,14 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
 
     @app.route(f"{Config.API_BASE_URL}<req_com_uuid>?=<req_star_uuid>", methods=['DELETE'])
     def accept_sol_shutdown(req_com_uuid, req_star_uuid):
+        """
+                Handles the shutdown request for a SOL connection.
+        """
 
         if req_com_uuid != peer_service.peer.com_uuid or req_star_uuid != peer_service.peer.sol_connection.star_uuid:
-            return jsonify({"error": "Unexpected request parameters"}), 401
+            return error_response(
+                f"Unauthorized shutdown request for STAR UUID: {req_star_uuid}, Component UUID: {req_com_uuid}",
+                "Unauthorized request: Mismatched STAR or Component UUID.", 401)
 
         return jsonify({"message": "Shutdown accepted"}), 200
 
@@ -45,35 +65,42 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
         data = request.get_json()
 
         # Validate data
-        star_uuid = data.get(Config.STAR_UUID_FIELD)
-        sol_uuid = data.get(Config.SOL_UUID_FIELD)
-        component_uuid = data.get(Config.COMPONENT_UUID_FIELD)
-        com_ip = data.get(Config.COMPONENT_IP_FIELD)
-        com_tcp = data.get(Config.COMPONENT_TCP_FIELD)
-        status = data.get(Config.STATUS_FIELD)
+        required_fields = [
+            Config.STAR_UUID_FIELD,
+            Config.SOL_UUID_FIELD,
+            Config.COMPONENT_UUID_FIELD,
+            Config.COMPONENT_IP_FIELD,
+            Config.COMPONENT_TCP_FIELD,
+            Config.STATUS_FIELD,
+        ]
 
-        if not all([star_uuid, sol_uuid, component_uuid, com_ip, com_tcp, status]):
-            global_logger.error("Missing required fields in registration data.")
-            return jsonify({"error": "Missing required fields"}), 400
+        if not all(field in data for field in required_fields):
+            return error_response(f"Registration attempt failed: Missing fields in data {data}",
+                                  "Registration failed: Missing required fields in the request.", 400)
 
-        if star_uuid != sol_service.star_uuid:
-            global_logger.warning(f"Unauthorized registration attempt for STAR {star_uuid}")
-            return jsonify({"error": "Unauthorized: STAR UUID mismatch"}), 401
+        star_uuid = data[Config.STAR_UUID_FIELD]
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized registration attempt for STAR {star_uuid}",
+                                  "Unauthorized: STAR UUID mismatch", 401)
 
-        if len(sol_service.registered_peers) >= Config.MAX_COMPONENTS:
-            global_logger.warning("Registration failed: SOL is full.")
-            return jsonify({"error": "No room left"}), 403
+        if len(sol_service.sol.registered_peers) >= Config.MAX_COMPONENTS:
+            return error_response(f"Registration failed: SOL is full. Max components: {Config.MAX_COMPONENTS}",
+                                  "Registration failed: Maximum number of components reached.", 403)
 
-        if any(p.com_uuid == component_uuid for p in sol_service.registered_peers):  # TODO: Hier lock einbauen?
-            global_logger.warning(f"Conflict: Component {component_uuid} already registered.")
-            return jsonify({"error": "Conflict: Component already registered"}), 409
+        if sol_service.sol.find_peer(data[Config.COMPONENT_UUID_FIELD]):
+            global_logger.warning()
+            return error_response(f"Registration failed: Component is already registered.",
+                                  "Conflict: Component {data[Config.COMPONENT_UUID_FIELD]} is already registered.", 409)
 
-        peer = Peer(ip=com_ip,
-                    port=com_tcp,
-                    com_uuid=component_uuid,
-                    com_tcp=com_tcp,
-                    status=status)  # TODO: Ist port===com_tcp
-        sol_service.add_peer(peer)
+        peer = Peer(
+            ip=data[Config.COMPONENT_IP_FIELD],
+            port=data[Config.COMPONENT_TCP_FIELD],
+            com_uuid=data[Config.COMPONENT_UUID_FIELD],
+            com_tcp=data[Config.COMPONENT_TCP_FIELD],
+            status=data[Config.STATUS_FIELD]
+        )
+        # TODO: Ist port===com_tcp
+        sol_service.sol.add_peer(peer)
         global_logger.info(f"Component registered successfully: {peer}")
         return jsonify({"message": "Component registered successfully", "details": peer.to_dict()}), 200
 
@@ -84,12 +111,14 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
         """
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
-        if not star_uuid or star_uuid != sol_service.star_uuid:
-            return jsonify({"error": "Unauthorized: STAR UUID mismatch"}), 401
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized status request with STAR UUID: {star_uuid}",
+                                  "Access denied: Invalid STAR UUID.", 401)
 
-        peer = next((p for p in sol_service.registered_peers if p.com_uuid == com_uuid), None)
+        peer = sol_service.sol.find_peer(com_uuid)
         if not peer:
-            return jsonify({"error": "Component does not exist"}), 404
+            return error_response(f"Status request failed: Component UUID {com_uuid} not found.",
+                                  "Component not found: The specified UUID does not exist.", 404)
 
         peer.set_last_interaction_timestamp()
         return jsonify({
@@ -107,26 +136,23 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
         Unregisters a registered peer from the star.
         """
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
-        print(f"request: {star_uuid} sol_service.star_uuid {sol_service.star_uuid}")
-        if not star_uuid or star_uuid != sol_service.star_uuid:
-            global_logger.warning(f"Unauthorized unregister attempt for STAR {star_uuid}")
-            return "Unauthorized", 401
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized unregister attempt with STAR UUID: {star_uuid}",
+                                  "Unregister failed: Unauthorized STAR UUID.", 401)
 
-        peer = next((p for p in sol_service.registered_peers if p.com_uuid == com_uuid),
-                    None)  # TODO: Hier mit dem Lock arbeiten?
+        peer = sol_service.sol.find_peer(com_uuid)
         if not peer:
-            global_logger.warning(f"Component {com_uuid} not found for unregister.")
-            return "Not found", 404
+            return error_response(f"Unregister attempt failed: Component UUID {com_uuid} not found.",
+                                  "Unregister failed: The specified component does not exist.", 401)
 
         requester_ip = request.remote_addr
         if peer.ip != requester_ip:
-            global_logger.warning(
-                f"Unauthorized unregister attempt from IP {requester_ip} for peer {com_uuid}.")
-            return "Unauthorized", 401
+            return error_response(f"Unregister failed: Unauthorized IP {requester_ip} for component UUID {com_uuid}",
+                                  "Unregister failed: Unauthorized IP address.", 404)
 
         peer.status = "left"
         peer.set_last_interaction_timestamp()
-        sol_service.remove_peer(peer)
+        sol_service.sol.remove_peer(peer)
         global_logger.info(f"Component {com_uuid} unregistered successfully.")
         return "ok", 200
 
@@ -135,18 +161,21 @@ def initialize_flask_endpoints(app, peer_service, sol_service):
         data = request.get_json()
 
         # Validierung
-        if data["star"] != sol_service.sol.star_uuid or data["sol"] != sol_service.sol.com_uuid:
-            return "Unauthorized", 401
+        if data[Config.STAR_UUID_FIELD] != sol_service.star_uuid or data[Config.SOL_UUID_FIELD] != sol_service.sol_uuid:
+            return error_response(
+                f"Unauthorized update request with STAR UUID: {data[Config.STAR_UUID_FIELD]}, SOL UUID: {data[Config.SOL_UUID_FIELD]}",
+                "Update failed: Invalid STAR or SOL UUID.", 401)
 
-        with sol_service._peers_lock:  # TODO: Auslagern
-            peer = next((p for p in sol_service.registered_peers if p.com_uuid == com_uuid), None)
-
+        peer = sol_service.sol.find_peer(com_uuid)
         if not peer:
-            return "Not Found", 404
+            return error_response("Update failed: Component UUID {com_uuid} not found.",
+                                  "Update failed: Component does not exist.", 404)
 
-        if peer.ip != data["com-ip"] or peer.com_tcp != data["com-tcp"] or data["status"] != 200:
-            return "Conflict", 409
+        if peer.ip != data[Config.COMPONENT_IP_FIELD] or peer.com_tcp != data[Config.COMPONENT_TCP_FIELD]:
+            return error_response(
+                "Conflict: Mismatch in data for Component UUID {com_uuid}. IP: {data[Config.COMPONENT_IP_FIELD]}, TCP: {data[Config.COMPONENT_TCP_FIELD]}",
+                "Update failed: Component data does not match the registered details.", 409)
 
         peer.set_last_interaction_timestamp()
-        peer.status = data["status"]
-        return "ok", 200
+        peer.status = data[Config.STATUS_FIELD]
+        return jsonify({"message": "Status updated successfully"}), 200
