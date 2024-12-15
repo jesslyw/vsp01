@@ -1,49 +1,73 @@
-from flask import Flask, request, jsonify
+import os
+import threading
+import time
+from app.config import Config
+from flask import after_this_request, request, jsonify
+from utils.logger import global_logger
 
-from src.app.config import Config
+from model.peer import Peer
 
 
-class PeerController:
-    def __init__(self, service):
-        self.service = service
-        self.app = Flask(__name__)
+def initialize_peer_endpoints(app, peer_service):
 
-        self.create_peer_api()
+    def error_response(logger_message, error_message, status_code):
+        """Generates a standardized error response."""
+        global_logger.error(logger_message)
+        return jsonify({"error": error_message}), status_code
 
-    def create_peer_api(self):
-        @self.app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
-        def get_status(com_uuid):
-            """
-            Behandelt GET-Anfragen für den Status des Peers.
-            """
-            star_uuid = request.args.get("star")
+    def validate_star_uuid(star_uuid, expected_star_uuid):
+        return star_uuid == expected_star_uuid
 
-            # Validierung
-            if not star_uuid or star_uuid != self.service.peer.star_uuid:
-                return "Unauthorized", 401
-            if com_uuid != self.service.peer.com_uuid:
-                return "Conflict", 409
-
-            # Status zurückgeben
-            return jsonify({
-                "star": self.service.peer.star_uuid,
-                "sol": self.service.peer.sol_uuid,
-                "component": self.service.peer.com_uuid,
-                "com-ip": self.service.peer.ip,
-                "com-tcp": self.service.peer.port,
-                "status": 200,  # Oder der aktuelle Status
-            }), 200
-
-        @self.app.route(f"{Config.API_BASE_URL}<req_com_uuid>?=<req_star_uuid>", methods=['DELETE'])
-        def accept_sol_shutdown(req_com_uuid, req_star_uuid):
-
-            if req_com_uuid != self.service.peer.com_uuid or req_star_uuid != self.service.peer.sol_connection.star_uuid:
-                return jsonify({"error": "Unexpected request parameters"}), 401
-
-            return jsonify({"message": "Shutdown accepted"}), 200
-
-    def start(self):
+    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
+    def get_status(com_uuid):
         """
-        Startet die REST-API des Peers.
+                Retrieves the status of the peer based on the com_uuid.
+
         """
-        self.app.run(host=Config.IP, port=Config.STAR_PORT, debug=False)
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+
+        # Validierung
+        if not validate_star_uuid(star_uuid, peer_service.peer.star_uuid):
+            return error_response(f"Unauthorized access attempt with STAR UUID: {star_uuid}",
+                                  "Unauthorized access: Invalid or missing STAR UUID.", 401)
+        if com_uuid != peer_service.peer.com_uuid:
+            return error_response(
+                f"Conflict: Component UUID mismatch. Requested: {com_uuid}, Expected: {peer_service.peer.com_uuid}",
+                "Conflict: Component UUID does not match the requested UUID.", 409)
+
+        # Status zurückgeben
+        return jsonify({
+            "star": peer_service.peer.star_uuid,
+            "sol": peer_service.peer.sol_uuid,
+            "peer": peer_service.peer.com_uuid,
+            "com-ip": peer_service.peer.ip,
+            "com-tcp": peer_service.peer.port,
+            "status": peer_service.peer.status,
+        }), 200
+
+    @app.route(f"{Config.API_BASE_URL}<req_com_uuid>", methods=["DELETE"])
+    def accept_sol_shutdown(req_com_uuid):
+        req_star_uuid = request.args.get("star")
+        if (
+            req_com_uuid != peer_service.peer.com_uuid
+            or req_star_uuid != peer_service.peer.sol_connection.star_uuid
+        ):
+            return error_response(
+                f"Unauthorized shutdown request for STAR UUID: {req_star_uuid}, Component UUID: {req_com_uuid}",
+                "Unauthorized request: Mismatched STAR or Component UUID.", 401)
+
+        @after_this_request
+        def shutdown(response):
+            # Run shutdown in a separate thread to avoid blocking response
+            threading.Thread(target=shutdown_system).start()
+            return response
+
+        return jsonify({"message": "Shutdown accepted, exiting."}), 200
+
+    def shutdown_system():
+        # delay slightly before exiting to ensure response message to sol is sent
+        time.sleep(1)
+        # Push the Flask application context to the new thread
+        with app.app_context():
+            global_logger.info("Shutting down system...")
+            os._exit(Config.EXIT_CODE_ERROR)
