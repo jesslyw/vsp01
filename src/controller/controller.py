@@ -1,221 +1,293 @@
-# import os
-# import threading
-# import time
-# from app.config import Config
-# from flask import after_this_request, request, jsonify
-# from utils.logger import global_logger
+from app.config import Config
 
-# from model.peer import Peer
+from flask import request, jsonify
+from utils.logger import global_logger
+
+from model.peer import Peer
+
+from model.message import Message
+
+from model import peer
 
 
-# def initialize_flask_endpoints(app, peer_service, sol_service):
-#     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
-#     def get_status(com_uuid):
-#         """
-#         PEER_API: Behandelt GET-Anfragen für den Status des Peers.
-#         """
-#         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+def initialize_flask_endpoints(app, peer_service, sol_service, message_service):
+    """
+    Initializes Flask API endpoints for managing peers and components.
+    """
 
-#         # Validierung
-#         if not star_uuid or star_uuid != peer_service.peer.star_uuid:
-#             return "Unauthorized", 401
-#         if com_uuid != peer_service.peer.com_uuid:
-#             return "Conflict", 409
+    def error_response(logger_message, error_message, status_code):
+        """Generates a standardized error response."""
+        global_logger.error(logger_message)
+        return jsonify({"error": error_message}), status_code
 
-#         # Status zurückgeben
-#         return (
-#             jsonify(
-#                 {
-#                     "star": peer_service.peer.star_uuid,
-#                     "sol": peer_service.peer.sol_uuid,
-#                     "peer": peer_service.peer.com_uuid,
-#                     "com-ip": peer_service.peer.ip,
-#                     "com-tcp": peer_service.peer.port,
-#                     "status": peer_service.peer.status,
-#                 }
-#             ),
-#             200,
-#         )
+    def validate_star_uuid(star_uuid, expected_star_uuid):
+        return star_uuid == expected_star_uuid
 
-#     @app.route(f"{Config.API_BASE_URL}<req_com_uuid>", methods=["DELETE"])
-#     def accept_sol_shutdown(req_com_uuid):
-#         req_star_uuid = request.args.get(
-#             "sol"
-#         )  # url: changed star to sol to differentiate delete endpoints
-#         if (
-#             req_com_uuid != peer_service.peer.com_uuid
-#             or req_star_uuid != peer_service.peer.sol_connection.star_uuid
-#         ):
-#             return jsonify({"error": "Unexpected request parameters"}), 401
+    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
+    def get_status(com_uuid):
+        """
+                Retrieves the status of the peer based on the com_uuid.
 
-#         @after_this_request
-#         def shutdown(response):
-#             # global_logger.info("Shutdown accepted, preparing to exit.")
-#             # Run shutdown in a separate thread to avoid blocking response
-#             threading.Thread(target=shutdown_system).start()
-#             return response
+        """
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
-#         return jsonify({"message": "Shutdown accepted, exiting."}), 200
+        # Validierung
+        if not validate_star_uuid(star_uuid, peer_service.peer.star_uuid):
+            return error_response(f"Unauthorized access attempt with STAR UUID: {star_uuid}",
+                                  "Unauthorized access: Invalid or missing STAR UUID.", 401)
+        if com_uuid != peer_service.peer.com_uuid:
+            return error_response(
+                f"Conflict: Component UUID mismatch. Requested: {com_uuid}, Expected: {peer_service.peer.com_uuid}",
+                "Conflict: Component UUID does not match the requested UUID.", 409)
 
-#     def shutdown_system():
-#         # global_logger.info("Waiting for the response to be sent before shutting down...")
-#         time.sleep(1)  # Add a small delay before exiting to ensure response is sent
+        # Status zurückgeben
+        return jsonify({
+            "star": peer_service.peer.star_uuid,
+            "sol": peer_service.peer.sol_uuid,
+            "peer": peer_service.peer.com_uuid,
+            "com-ip": peer_service.peer.ip,
+            "com-tcp": peer_service.peer.port,
+            "status": peer_service.peer.status,
+        }), 200
 
-#         # Push the Flask application context to the new thread
-#         with app.app_context():
-#             global_logger.info("Shutting down system...")
-#             os._exit(Config.EXIT_CODE_ERROR)  # Exit with the defined error code
+    @app.route(f"{Config.API_BASE_URL}<req_com_uuid>?=<req_star_uuid>", methods=['DELETE'])
+    def accept_sol_shutdown(req_com_uuid, req_star_uuid):
+        """
+                Handles the shutdown request for a SOL connection.
+        """
 
-#     @app.route(Config.API_BASE_URL, methods=["POST"])
-#     def register_component():
-#         """
-#         Handles registration of a new peer.
-#         """
-#         data = request.get_json()
+        if req_com_uuid != peer_service.peer.com_uuid or req_star_uuid != peer_service.peer.sol_connection.star_uuid:
+            return error_response(
+                f"Unauthorized shutdown request for STAR UUID: {req_star_uuid}, Component UUID: {req_com_uuid}",
+                "Unauthorized request: Mismatched STAR or Component UUID.", 401)
 
-#         # Validate data
-#         star_uuid = data.get(Config.STAR_UUID_FIELD)
-#         sol_uuid = data.get(Config.SOL_UUID_FIELD)
-#         component_uuid = data.get(Config.COMPONENT_UUID_FIELD)
-#         com_ip = data.get(Config.COMPONENT_IP_FIELD)
-#         com_tcp = data.get(Config.COMPONENT_TCP_FIELD)
-#         status = data.get(Config.STATUS_FIELD)
+        return jsonify({"message": "Shutdown accepted"}), 200
 
-#         if not all([star_uuid, sol_uuid, component_uuid, com_ip, com_tcp, status]):
-#             global_logger.error("Missing required fields in registration data.")
-#             return jsonify({"error": "Missing required fields"}), 400
+    @app.route(Config.API_BASE_URL, methods=['POST'])
+    def register_component():
+        """
+        Handles registration of a new peer.
+        """
+        data = request.get_json()
 
-#         if star_uuid != sol_service.star_uuid:
-#             global_logger.warning(
-#                 f"Unauthorized registration attempt for STAR {star_uuid}"
-#             )
-#             return jsonify({"error": "Unauthorized: STAR UUID mismatch"}), 401
+        # Validate data
+        required_fields = [
+            Config.STAR_UUID_FIELD,
+            Config.SOL_UUID_FIELD,
+            Config.COMPONENT_UUID_FIELD,
+            Config.COMPONENT_IP_FIELD,
+            Config.COMPONENT_TCP_FIELD,
+            Config.STATUS_FIELD,
+        ]
 
-#         if len(sol_service.registered_peers) >= Config.MAX_COMPONENTS:
-#             global_logger.warning("Registration failed: SOL is full.")
-#             return jsonify({"error": "No room left"}), 403
+        if not all(field in data for field in required_fields):
+            return error_response(f"Registration attempt failed: Missing fields in data {data}",
+                                  "Registration failed: Missing required fields in the request.", 400)
 
-#         if any(
-#             p.com_uuid == component_uuid for p in sol_service.registered_peers
-#         ):  # TODO: Hier lock einbauen?
-#             global_logger.warning(
-#                 f"Conflict: Component {component_uuid} already registered."
-#             )
-#             return jsonify({"error": "Conflict: Component already registered"}), 409
+        star_uuid = data[Config.STAR_UUID_FIELD]
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized registration attempt for STAR {star_uuid}",
+                                  "Unauthorized: STAR UUID mismatch", 401)
 
-#         peer = Peer(
-#             ip=com_ip,
-#             port=com_tcp,
-#             com_uuid=component_uuid,
-#             com_tcp=com_tcp,
-#             status=status,
-#         )  # TODO: Ist port===com_tcp
-#         sol_service.add_peer(peer)
-#         global_logger.info(f"Component registered successfully: {peer}")
-#         return (
-#             jsonify(
-#                 {
-#                     "message": "Component registered successfully",
-#                     "details": peer.to_dict(),
-#                 }
-#             ),
-#             200,
-#         )
+        if len(sol_service.sol.registered_peers) >= Config.MAX_COMPONENTS:
+            return error_response(f"Registration failed: SOL is full. Max components: {Config.MAX_COMPONENTS}",
+                                  "Registration failed: Maximum number of components reached.", 403)
 
-#     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
-#     def get_component_status(com_uuid):
-#         """
-#         Retrieves the status of a registered peer.
-#         """
-#         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+        if sol_service.sol.find_peer(data[Config.COMPONENT_UUID_FIELD]):
+            global_logger.warning()
+            return error_response(f"Registration failed: Component is already registered.",
+                                  "Conflict: Component {data[Config.COMPONENT_UUID_FIELD]} is already registered.", 409)
 
-#         if not star_uuid or star_uuid != sol_service.star_uuid:
-#             return jsonify({"error": "Unauthorized: STAR UUID mismatch"}), 401
+        peer = Peer(
+            ip=data[Config.COMPONENT_IP_FIELD],
+            port=data[Config.COMPONENT_TCP_FIELD],
+            com_uuid=data[Config.COMPONENT_UUID_FIELD],
+            com_tcp=data[Config.COMPONENT_TCP_FIELD],
+            status=data[Config.STATUS_FIELD]
+        )
+        # TODO: Ist port===com_tcp
+        sol_service.sol.add_peer(peer)
+        global_logger.info(f"Component registered successfully: {peer}")
+        return jsonify({"message": "Component registered successfully", "details": peer.com_uuid}), 200
 
-#         peer = next(
-#             (p for p in sol_service.registered_peers if p.com_uuid == com_uuid), None
-#         )
-#         if not peer:
-#             return jsonify({"error": "Component does not exist"}), 404
+    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['GET'])
+    def get_component_status(com_uuid):
+        """
+        Retrieves the status of a registered peer.
+        """
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
-#         peer.set_last_interaction_timestamp()
-#         return (
-#             jsonify(
-#                 {
-#                     Config.STAR_UUID_FIELD: sol_service.star_uuid,
-#                     Config.SOL_UUID_FIELD: sol_service.sol_uuid,
-#                     Config.COMPONENT_UUID_FIELD: peer.com_uuid,
-#                     Config.COMPONENT_IP_FIELD: peer.ip,
-#                     Config.COMPONENT_TCP_FIELD: peer.com_tcp,
-#                     Config.STATUS_FIELD: peer.status,
-#                 }
-#             ),
-#             200,
-#         )
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized status request with STAR UUID: {star_uuid}",
+                                  "Access denied: Invalid STAR UUID.", 401)
 
-#     @app.route(
-#         f"{Config.API_BASE_URL}<com_uuid>?star=<req_star_uuid>", methods=["DELETE"]
-#     )
-#     def unregister_component(com_uuid):
-#         """
-#         Unregisters a registered peer from the star.
-#         """
-#         # star_uuid = request.args.get(Config.STAR_UUID_FIELD)
-#         star_uuid = star_uuid = request.args.get("star")
-#         print(f"request: {star_uuid} sol_service.star_uuid {sol_service.star_uuid}")
-#         if not star_uuid or star_uuid != sol_service.star_uuid:
-#             global_logger.warning(
-#                 f"Unauthorized unregister attempt for STAR {star_uuid}"
-#             )
-#             return "Unauthorized", 401
+        peer = sol_service.sol.find_peer(com_uuid)
+        if not peer:
+            return error_response(f"Status request failed: Component UUID {com_uuid} not found.",
+                                  "Component not found: The specified UUID does not exist.", 404)
 
-#         peer = next(
-#             (p for p in sol_service.registered_peers if p.com_uuid == com_uuid), None
-#         )  # TODO: Hier mit dem Lock arbeiten?
-#         if not peer:
-#             global_logger.warning(f"Component {com_uuid} not found for unregister.")
-#             return "Not found", 404
+        peer.set_last_interaction_timestamp()
+        return jsonify({
+            Config.STAR_UUID_FIELD: sol_service.star_uuid,
+            Config.SOL_UUID_FIELD: sol_service.sol_uuid,
+            Config.COMPONENT_UUID_FIELD: peer.com_uuid,
+            Config.COMPONENT_IP_FIELD: peer.ip,
+            Config.COMPONENT_TCP_FIELD: peer.com_tcp,
+            Config.STATUS_FIELD: peer.status
+        }), 200
 
-#         requester_ip = request.remote_addr
-#         if peer.ip != requester_ip:
-#             global_logger.warning(
-#                 f"Unauthorized unregister attempt from IP {requester_ip} for peer {com_uuid}."
-#             )
-#             return "Unauthorized", 401
+    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=['DELETE'])
+    def unregister_component(com_uuid):
+        """
+        Unregisters a registered peer from the star.
+        """
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized unregister attempt with STAR UUID: {star_uuid}",
+                                  "Unregister failed: Unauthorized STAR UUID.", 401)
 
-#         peer.status = "left"
-#         peer.set_last_interaction_timestamp()
-#         sol_service.remove_peer(peer)
-#         global_logger.info(f"Component {com_uuid} unregistered successfully.")
-#         return "ok", 200
+        peer = sol_service.sol.find_peer(com_uuid)
+        if not peer:
+            return error_response(f"Unregister attempt failed: Component UUID {com_uuid} not found.",
+                                  "Unregister failed: The specified component does not exist.", 401)
 
-#     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["PATCH"])
-#     def update_component_status(com_uuid):
-#         data = request.get_json()
+        requester_ip = request.remote_addr
+        if peer.ip != requester_ip:
+            return error_response(f"Unregister failed: Unauthorized IP {requester_ip} for component UUID {com_uuid}",
+                                  "Unregister failed: Unauthorized IP address.", 404)
 
-#         # Validierung
-#         if (
-#             data["star"] != sol_service.sol.star_uuid
-#             or data["sol"] != sol_service.sol.com_uuid
-#         ):
-#             return "Unauthorized", 401
+        peer.status = "left"
+        peer.set_last_interaction_timestamp()
+        sol_service.sol.remove_peer(peer)
+        global_logger.info(f"Component {com_uuid} unregistered successfully.")
+        return "ok", 200
 
-#         with sol_service._peers_lock:  # TODO: Auslagern
-#             peer = next(
-#                 (p for p in sol_service.registered_peers if p.com_uuid == com_uuid),
-#                 None,
-#             )
+    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["PATCH"])
+    def update_component_status(com_uuid):
+        data = request.get_json()
 
-#         if not peer:
-#             return "Not Found", 404
+        # Validierung
+        if data[Config.STAR_UUID_FIELD] != sol_service.star_uuid or data[Config.SOL_UUID_FIELD] != sol_service.sol_uuid:
+            return error_response(
+                f"Unauthorized update request with STAR UUID: {data[Config.STAR_UUID_FIELD]}, SOL UUID: {data[Config.SOL_UUID_FIELD]}",
+                "Update failed: Invalid STAR or SOL UUID.", 401)
 
-#         if (
-#             peer.ip != data["com-ip"]
-#             or peer.com_tcp != data["com-tcp"]
-#             or data["status"] != 200
-#         ):
-#             return "Conflict", 409
+        peer = sol_service.sol.find_peer(com_uuid)
+        if not peer:
+            return error_response("Update failed: Component UUID {com_uuid} not found.",
+                                  "Update failed: Component does not exist.", 404)
 
-#         peer.set_last_interaction_timestamp()
-#         peer.status = data["status"]
-#         return "ok", 200
+        if peer.ip != data[Config.COMPONENT_IP_FIELD] or peer.com_tcp != data[Config.COMPONENT_TCP_FIELD]:
+            return error_response(
+                "Conflict: Mismatch in data for Component UUID {com_uuid}. IP: {data[Config.COMPONENT_IP_FIELD]}, TCP: {data[Config.COMPONENT_TCP_FIELD]}",
+                "Update failed: Component data does not match the registered details.", 409)
+
+        peer.set_last_interaction_timestamp()
+        peer.status = data[Config.STATUS_FIELD]
+        return jsonify({"message": "Status updated successfully"}), 200
+
+    # TODO: Funktioniert aktuell komplett unabhängig von SOL. In der Aufgabe steht aber, dass nur SOL das kann, also eventuell sol_service.message_service?
+    @app.route(f"{Config.API_BASE_URL}messages", methods=["POST"])
+    def create_message():
+        data = request.get_json()
+        star_uuid = data.get(Config.STAR_UUID_FIELD)
+        origin = data.get("origin")
+        sender = data.get("sender", "")
+        subject = data.get("subject", "")
+        message = data.get("message", "")
+
+        # Validierungen
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized update request with STAR UUID: {data[Config.STAR_UUID_FIELD]}",
+                                  "Unauthorized: Invalid STAR UUID.", 401)
+        if not origin or not subject.strip():
+            return error_response("Precondition failed: Missing required field subject.",
+                                  "Precondition failed: Missing required fields.", 412)
+
+        # "Die <MSG-UUID> wird im Body immer leer gelassen, weil SOL für die Vergabe zuständig ist." aus der Aufgabe
+        # msg_id = data.get("msg-id", "")
+        # if not msg_id:
+        #     msg_id = message_service.generate_msg_id(origin if "@" not in origin else peer.com_uuid)
+        msg_id = message_service.generate_msg_id(origin if "@" not in origin else peer.com_uuid)
+
+        # Überprüfen, ob die Nachricht existiert
+        if msg_id in message_service.messages:
+            return error_response(f"Conflict: Message ID {msg_id}already exists.",
+                                  "Conflict: Message ID already exists.", 404)
+
+        new_message = Message(origin, sender, subject, message, msg_id)
+        message_service.add_message(new_message)
+
+        # TODO: Sollte hier nochmal last_interaction_timestamp gesetzt werden?
+
+        return jsonify({"msg-id": msg_id}), 200
+
+    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["DELETE"])
+    def delete_message(msg_id):
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized: Invalid STAR UUID {star_uuid}",
+                                  "Unauthorized: Invalid STAR UUID.", 401)
+
+        if not message_service.delete_message(msg_id):
+            return error_response( f"Message with ID {msg_id} not found",
+                                   "Message not found.", 404)
+        return "ok", 200
+
+    # TODO: "Alle Komponenten, die in den Stern integriert sind – also auch SOL, können die Liste der Nachrichten abfragen." also doch nicht sol_service.message_service?
+    @app.route(f"{Config.API_BASE_URL}messages", methods=["GET"])
+    def list_messages():
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+        allowed_scopes = {"active", "all"}
+        allowed_views = {"id", "header"}
+
+        scope = request.args.get("scope", "active")
+        view = request.args.get("view", "id")
+
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized: Invalid STAR UUID {star_uuid}",
+                                  "Unauthorized: Invalid STAR UUID.", 401)
+        if scope not in allowed_scopes:
+            return error_response(f"Invalid scope value {scope}",
+                                  "Invalid scope value.", 400)
+        if view not in allowed_views:
+            return error_response(f"Invalid view value {view}",
+                                  "Invalid view value.", 400)
+
+        messages = message_service.list_messages(scope=scope, view=view)
+        return jsonify({
+            "star": star_uuid,
+            "totalResults": len(messages),
+            "scope": scope,
+            "view": view,
+            "messages": messages,
+        }), 200
+
+    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["GET"])
+    def get_message(msg_id):
+        star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"Unauthorized: Invalid STAR UUID {star_uuid}",
+                                  "Unauthorized: Invalid STAR UUID.", 401)
+        if not msg_id:
+            return jsonify({
+                "star": star_uuid,
+                "totalResults": 0,
+                "messages": [],
+            }), 404
+
+        message = message_service.get_message(msg_id)
+        if not message:
+            return jsonify({
+                "star": star_uuid,
+                "totalResults": 0,
+                "messages": [],
+            }), 404
+
+        return jsonify({
+            "star": star_uuid,
+            "totalResults": 1,
+            "messages": [message.to_dict(view="header" if message.status == "active" else "id")],
+        }), 200

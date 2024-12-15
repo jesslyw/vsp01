@@ -11,40 +11,20 @@ from utils.logger import global_logger
 from utils.uuid_generator import UuidGenerator
 
 
-# TODO: Starport ist jetzt in der Config-Datei und hier: Passt das so?
-class SolService:
+class SOLService:
     def __init__(self, peer, star_port=None):
         self.peer = peer
         self.star_uuid = None
         self.sol_uuid = None
         self.star_port = star_port or Config.STAR_PORT
-        self.registered_peers = []
-        self._peers_lock = Lock()
         self.num_active_components = 1
-        self.max_active_components = 4
         self.sol = None
 
-        # Start the SOL API in a separate thread
-        # self.start_sol_api()
-
-    def start_sol_api(self):
-        """Starts the SOL API in a separate thread."""
-        try:
-            # app = create_sol_api(self) #TODO: was ist hier los? Soll das so? Kann das Weg?
-            # app.run(port=Config.STAR_PORT, debug=False)
-            # api_thread = threading.Thread(target=app.run, kwargs={"port": Config.PEER_PORT, "debug": False}, daemon=True)
-            # api_thread.start()
-            global_logger.info(
-                f"SOL API started on port {Config.STAR_PORT}"
-            )  # TODO: Ist das der richtige Port?
-        except Exception as e:
-            global_logger.error(f"Failed to start SOL API: {e}")
 
     def listen_for_hello(self):
         """Listens for HELLO? messages and responds with the required JSON blob."""
         global_logger.info("SOL is listening for HELLO? messages...")
         try:
-
             def handle_message(message, addr):
                 if message.strip() == "HELLO?":
                     global_logger.info(f"Received HELLO? from {addr[0]}:{addr[1]}")
@@ -99,8 +79,8 @@ class SolService:
         while True:
             try:
                 current_time = datetime.now()
-                with self._peers_lock:
-                    for peer in self.registered_peers:
+                with self.sol.peers_lock:
+                    for peer in self.sol.registered_peers:
 
                         if peer.com_uuid == self.peer.com_uuid:
                             continue
@@ -112,7 +92,7 @@ class SolService:
                             current_time - last_interaction
                         ).total_seconds() > Config.PEER_INACTIVITY_THRESHOLD:
                             global_logger.warning(
-                                f"Component {peer.component} is inactive. Checking status."
+                                f"Component {peer.com_uuid} is inactive. Checking status."
                             )
                             self.check_component_status(peer)
                 time_after_check = datetime.now()
@@ -124,10 +104,10 @@ class SolService:
     def unregister_all_peers_and_exit(self):
         """Unregister all peers from the star and exit SOL."""
         global_logger.info("Unregistering all peers before exiting...")
-        with self._peers_lock:
-            for peer in self.registered_peers:
+        with self.sol.peers_lock:
+            for peer in self.sol.registered_peers:
                 self._unregister_peer(peer)
-            self.registered_peers.clear()
+            self.sol.registered_peers.clear()
 
         # see all running threads
         # Print all active threads before exiting
@@ -173,11 +153,3 @@ class SolService:
             f"Failed to unregister peer {peer.com_uuid} after {Config.UNREGISTER_RETRY_COUNT} attempts."
         )
         peer.status = "disconnected"
-
-    def add_peer(self, peer):
-        with self._peers_lock:
-            self.registered_peers.append(peer)
-
-    def remove_peer(self, peer):
-        with self._peers_lock:
-            self.registered_peers.remove(peer)

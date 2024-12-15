@@ -3,3 +3,4 @@ flask
 pytest
 pytest-mock
 requests
+flasgger

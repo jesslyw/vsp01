@@ -1,0 +1,276 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "VS System API"
+  description: "API für Nachrichten und Stern-Komponenten"
+host: "localhost:8000"
+basePath: "/vs/v1/system"
+schemes:
+  - http
+paths:
+  /{com_uuid}:
+    get:
+      tags:
+        - Status
+      summary: "Retrieve the status of a peer"
+      parameters:
+        - name: com_uuid
+          in: path
+          required: true
+          type: string
+          description: "Component UUID"
+        - name: star
+          in: query
+          required: true
+          type: string
+          description: "The STAR UUID for validation"
+      responses:
+        "200":
+          description: "Status retrieved successfully"
+          schema:
+            type: object
+            properties:
+              star:
+                type: string
+                example: "1234"
+              sol:
+                type: string
+                example: "5678"
+              peer:
+                type: string
+                example: "9876"
+              com-ip:
+                type: string
+                example: "192.168.1.1"
+              com-tcp:
+                type: integer
+                example: 8080
+              status:
+                type: string
+                example: "active"
+        "401":
+          description: "Unauthorized"
+        "409":
+          description: "Conflict: UUID mismatch"
+    delete:
+      tags:
+        - Status
+      summary: "Handle SOL shutdown request"
+      parameters:
+        - name: req_com_uuid
+          in: path
+          required: true
+          type: string
+          description: "Requesting Component UUID"
+        - name: req_star_uuid
+          in: query
+          required: true
+          type: string
+          description: "Requesting STAR UUID"
+      responses:
+        "200":
+          description: "Shutdown accepted"
+        "401":
+          description: "Unauthorized request"
+
+  /:
+    post:
+      tags:
+        - Registration
+      summary: "Register a new peer"
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              star:
+                type: string
+                example: "1234"
+              sol:
+                type: string
+                example: "5678"
+              component:
+                type: string
+                example: "9876"
+              com-ip:
+                type: string
+                example: "192.168.1.1"
+              com-tcp:
+                type: integer
+                example: 8080
+              status:
+                type: string
+                example: "active"
+      responses:
+        "200":
+          description: "Component registered successfully"
+        "401":
+          description: "Unauthorized: STAR UUID mismatch"
+        "403":
+          description: "Registration failed: Maximum number of components reached"
+        "409":
+          description: "Conflict: Component is already registered"
+
+  /messages:
+    get:
+      tags:
+        - Messages
+      summary: "List all messages"
+      parameters:
+        - name: star
+          in: query
+          required: true
+          type: string
+          description: "The STAR UUID to validate the request"
+        - name: scope
+          in: query
+          type: string
+          description: "Scope of the query (active or all)"
+          default: "active"
+        - name: view
+          in: query
+          type: string
+          description: "View of the messages (id or header)"
+          default: "id"
+      responses:
+        "200":
+          description: "List of messages"
+          schema:
+            type: object
+            properties:
+              star:
+                type: string
+                example: "1234"
+              totalResults:
+                type: integer
+                example: 2
+              messages:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    msg-id:
+                      type: string
+                      example: "1@5678"
+                    status:
+                      type: string
+                      example: "active"
+        "401":
+          description: "Unauthorized"
+
+    post:
+      tags:
+        - Messages
+      summary: "Create a new message or forward it to SOL"
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              star:
+                type: string
+                example: "1234"
+              origin:
+                type: string
+                example: "5678"
+              sender:
+                type: string
+                example: "5678"
+              subject:
+                type: string
+                example: "Test Message"
+              message:
+                type: string
+                example: "This is a test message body."
+      responses:
+        "200":
+          description: "Message created successfully"
+          schema:
+            type: object
+            properties:
+              msg-id:
+                type: string
+                example: "1@5678"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Already exists"
+        "412":
+          description: "Precondition failed"
+
+  /messages/{msg_id}:
+    get:
+      tags:
+        - Messages
+      summary: "Retrieve a specific message"
+      parameters:
+        - name: msg_id
+          in: path
+          required: true
+          type: string
+          description: "Message UUID"
+        - name: star
+          in: query
+          required: true
+          type: string
+          description: "The STAR UUID for validation"
+      responses:
+        "200":
+          description: "Message retrieved successfully"
+          schema:
+            type: object
+            properties:
+              star:
+                type: string
+                example: "1234"
+              totalResults:
+                type: integer
+                example: 1
+              messages:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    msg-id:
+                      type: string
+                      example: "1@5678"
+                    status:
+                      type: string
+                      example: "active"
+                    subject:
+                      type: string
+                      example: "Test Message"
+                    message:
+                      type: string
+                      example: "This is a test message body."
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Message not found"
+
+    delete:
+      tags:
+        - Messages
+      summary: "Delete a specific message"
+      parameters:
+        - name: msg_id
+          in: path
+          required: true
+          type: string
+          description: "Message UUID"
+        - name: star
+          in: query
+          required: true
+          type: string
+          description: "The STAR UUID to validate the request"
+      responses:
+        "200":
+          description: "Message deleted successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Message not found"
