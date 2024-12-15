@@ -2,6 +2,7 @@ import threading
 from app.config import Config
 from controller import sol_controller
 from utils.logger import global_logger
+from service.message_service import MessageService
 
 
 class SolManager:
@@ -9,9 +10,10 @@ class SolManager:
 
         self.sol_service = sol_service
         self.app = app
+        self.message_service = MessageService()
 
         # initialize sol endpoints and start flask server in a new thread
-        sol_controller.initialize_sol_endpoints(self.app, self.sol_service)
+        sol_controller.initialize_sol_endpoints(self.app, self.sol_service, self.message_service)
         flask_thread = threading.Thread(target=self.run_flask)
         flask_thread.daemon = (
             True  # This will ensure the thread ends when the main program ends

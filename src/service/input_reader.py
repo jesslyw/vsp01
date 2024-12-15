@@ -1,4 +1,6 @@
 import os
+from service.message_service import (send_create_message_request, send_delete_message_request,
+                                     send_list_messages_request, send_get_message_request)
 
 """
 The input_reader receives prompts from the user via a shell and performs according to the input.
@@ -7,10 +9,9 @@ This method is supposed to be started in a thread.
 
 
 class Input_Reader:
-    def __init__(self, peerService, solService, model, message_service):
+    def __init__(self, peerService, solService, model):
         self.peerService = peerService
         self.component = model
-        self.message_service = message_service
         self.solService = solService
     
 
@@ -66,12 +67,13 @@ class Input_Reader:
             #     print("Missing required fields: STAR-UUID, Origin, or Subject.")
             #     return
 
-            response = self.message_service.send_create_message_request(
+            response = send_create_message_request(
                 self.peerService.peer.sol_connection.ip,
                 self.peerService.peer.sol_connection.port,
                 self.peerService.peer.sol_connection.star_uuid,
                 self.peerService.peer.com_uuid,
-                self.peerService.peer.com_uuid, subject, message)
+                self.peerService.peer.com_uuid, subject,
+                message)
             if response:
                 print(f"Message created successfully")
             else:
@@ -89,7 +91,7 @@ class Input_Reader:
                 print("STAR-UUID is required.")
                 return
 
-            success = self.message_service.send_delete_message_request(
+            success = send_delete_message_request(
                 self.peerService.peer.sol_connection.ip,
                 self.peerService.peer.sol_connection.port,
                 self.peerService.peer.sol_connection.star_uuid, msg_id)
@@ -109,7 +111,7 @@ class Input_Reader:
             scope = input("Enter Scope (active, all): ").strip() or "active"
             view = input("Enter View (id, header): ").strip() or "id"
 
-            messages = self.message_service.send_list_messages_request(
+            messages = send_list_messages_request(
                             self.peerService.peer.sol_connection.ip,
                             self.peerService.peer.sol_connection.port,
                             self.peerService.peer.sol_connection.star_uuid,
@@ -131,7 +133,7 @@ class Input_Reader:
                 print("STAR-UUID is required.")
                 return
 
-            message = self.message_service.send_get_message_request(
+            message = send_get_message_request(
                     self.peerService.peer.sol_connection.ip,
                     self.peerService.peer.sol_connection.port,
                     msg_id,

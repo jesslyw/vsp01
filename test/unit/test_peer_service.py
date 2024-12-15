@@ -5,7 +5,7 @@ import requests
 
 from src.app.config import Config
 from src.service.peer_service import PeerService
-from src.service.sol_service import SOLService
+from src.service.sol_service import SolService
 
 
 class TestPeerService:
@@ -148,14 +148,14 @@ class TestPeerService:
         """
         # Mock für die SOLService
         mock_sol_service = MagicMock()
-        SOLService.return_value = mock_sol_service
+        SolService.return_value = mock_sol_service
 
         # Die Methode ausführen
         mock_peer_service.initialize_as_sol()
 
         # Überprüfen, ob SOLService korrekt erstellt wurde
         mock_sol_service = mock_peer_service.sol_service
-        assert isinstance(mock_sol_service, SOLService)
+        assert isinstance(mock_sol_service, SolService)
         assert mock_sol_service.star_uuid is not None
         assert mock_sol_service.sol_uuid is not None
         assert mock_sol_service.registered_peers[0]["component"] == mock_sol_service.sol_uuid

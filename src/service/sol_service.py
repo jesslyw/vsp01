@@ -11,7 +11,7 @@ from utils.logger import global_logger
 from utils.uuid_generator import UuidGenerator
 
 
-class SOLService:
+class SolService:
     def __init__(self, peer, star_port=None):
         self.peer = peer
         self.star_uuid = None

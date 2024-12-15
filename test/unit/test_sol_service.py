@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import requests
 
 from src.app.config import Config
-from src.service.sol_service import SOLService
+from src.service.sol_service import SolService
 
 
 class TestSOLService:
@@ -14,7 +14,7 @@ class TestSOLService:
     def mock_sol_service(self):
         udp_service = MagicMock()
         logger = MagicMock()
-        sol_service = SOLService(
+        sol_service = SolService(
             udp_service=udp_service,
             peer=MagicMock(),
             logger=logger,
