@@ -122,7 +122,7 @@ class PeerService:
         Initialisiert die Komponente als Mittelpunkt eines neuen Sterns (SOL).
         """
         com_uuid = UuidGenerator.generate_com_uuid()
-        star_uuid = self.generate_star_uuid(com_uuid)
+        star_uuid = UuidGenerator.generate_star_uuid(Config.IP, com_uuid)
         init_timestamp = datetime.now().isoformat()
 
         global_logger.info(
@@ -160,25 +160,6 @@ class PeerService:
         headers = {"Content-Type": "application/json"}
 
         return send_tcp_request("POST", sol_url, body=post_data, headers=headers)
-
-    def generate_com_uuid(self):
-        """
-        Generiert eine einzigartige vierstellige COM-UUID. TODO: Wird das hier überhaupt benutzt oder wird der generator benutzt?
-        """
-        while True:
-            com_uuid = randint(Config.UUID_MIN, Config.UUID_MAX)
-            if not self.sol_service or all(
-                comp["component"] != com_uuid
-                for comp in self.sol_service.registered_components
-            ):
-                return com_uuid
-
-    def generate_star_uuid(self, com_uuid):
-        """
-        Generiert die STAR-UUID basierend auf der IP-Adresse, dem SOL-ID und der COM-UUID. TODO: Wird das hier überhaupt benutzt oder wird der generator benutzt?
-        """
-        identifier = f"{self.peer.ip}{com_uuid}{com_uuid}".encode("utf-8")
-        return hashlib.md5(identifier).hexdigest()
 
     def send_status_update(self):
         """

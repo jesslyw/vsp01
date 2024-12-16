@@ -18,10 +18,10 @@ class UuidGenerator:
                 return com_uuid
 
     @staticmethod
-    def generate_star_uuid(sol_ip, sol_id, com_uuid):
+    def generate_star_uuid(sol_ip, com_uuid):
         """
         Generate a STAR-UUID using MD5 hash.
         Combines the SOL's IP address, ID, and COM-UUID.
         """
-        data = f"{sol_ip}-{sol_id}-{com_uuid}"
+        data = f"{sol_ip}-121-{com_uuid}"
         return str(hashlib.md5(data.encode('utf-8')).hexdigest())
