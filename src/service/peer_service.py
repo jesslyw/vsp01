@@ -122,7 +122,7 @@ class PeerService:
         Initialisiert die Komponente als Mittelpunkt eines neuen Sterns (SOL).
         """
         com_uuid = UuidGenerator.generate_com_uuid()
-        star_uuid = UuidGenerator.generate_star_uuid(Config.IP, com_uuid)
+        star_uuid = UuidGenerator.generate_star_uuid(com_uuid)
         init_timestamp = datetime.now().isoformat()
 
         global_logger.info(
@@ -160,6 +160,10 @@ class PeerService:
         headers = {"Content-Type": "application/json"}
 
         return send_tcp_request("POST", sol_url, body=post_data, headers=headers)
+
+
+
+
 
     def send_status_update(self):
         """

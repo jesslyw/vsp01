@@ -1,5 +1,7 @@
 import random
 import hashlib
+from app.config import Config
+
 
 class UuidGenerator:
   
@@ -18,10 +20,10 @@ class UuidGenerator:
                 return com_uuid
 
     @staticmethod
-    def generate_star_uuid(sol_ip, com_uuid):
+    def generate_star_uuid(com_uuid):
         """
         Generate a STAR-UUID using MD5 hash.
         Combines the SOL's IP address, ID, and COM-UUID.
         """
-        data = f"{sol_ip}-121-{com_uuid}"
+        data = f"{Config.IP}-{Config.SOL_ID}-{com_uuid}"
         return str(hashlib.md5(data.encode('utf-8')).hexdigest())
