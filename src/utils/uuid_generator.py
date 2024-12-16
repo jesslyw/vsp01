@@ -12,7 +12,7 @@ class UuidGenerator:
         COM-UUID is a 4-digit number (1000–9999) and must be unique.
         """
         while True:
-            com_uuid = str(random.randint(1000, 9999))
+            com_uuid = random.randint(1000, 9999)
             if com_uuid not in UuidGenerator.active_com_uuids:
                 UuidGenerator.active_com_uuids.add(com_uuid)
                 return com_uuid
