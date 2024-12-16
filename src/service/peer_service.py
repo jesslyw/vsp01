@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import threading
@@ -7,6 +8,7 @@ from random import randint
 import hashlib
 
 import requests
+#from flask import jsonify
 
 from app.config import Config
 from service.udp_service import UdpService
@@ -144,7 +146,7 @@ class PeerService:
         Send status to SOL and return the HTTP status code.
         """
         star = sol_data[Config.STAR_UUID_FIELD]
-        sol = sol_data[Config.COMPONENT_UUID_FIELD]
+        sol = sol_data[Config.SOL_UUID_FIELD]
         sol_ip = sol_data[Config.SOL_IP_FIELD]
         sol_tcp = sol_data[Config.SOL_TCP_FIELD]
 
@@ -179,12 +181,12 @@ class PeerService:
         }
 
         url = f"http://{self.peer.sol_connection.ip}:{self.peer.sol_connection.port}/vs/v1/system/{self.peer.com_uuid}"
-       # global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
+        global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
 
         try:
             response = requests.patch(url, json=payload, timeout=5)
             if response.status_code == 200:
-               # global_logger.info(f"Status update to SOL successful: {response.text}")
+                global_logger.info(f"Status update to SOL successful: {response.text}")
                 return True
             elif response.status_code == 401:
                 global_logger.warning(
