@@ -14,6 +14,7 @@ class SOL:
         self.sol_initialized_at = None
         self.registered_peers = []
         self.peers_lock = Lock()
+        self.galaxy_stars = []
 
 
     def add_peer(self, peer):
@@ -27,4 +28,10 @@ class SOL:
     def find_peer(self, com_uuid):
         with self.peers_lock:
             return next((p for p in self.registered_peers if p.com_uuid == com_uuid), None)
+
+    def add_star(self, star):
+        self.galaxy_stars.append(star)
+
+    def find_star(self, star_uuid):
+        return next((star for star in self.galaxy_stars if star.star_uuid == star_uuid), None)
 
