@@ -25,11 +25,15 @@ if __name__ == "__main__":
 
     # parse potential port-argument
     parser = argparse.ArgumentParser()
-    parser.add_argument('-port', type=int, required=False)
+    parser.add_argument('-spt', type=int, required=False)  # spt = star port
+    parser.add_argument('-gpt', type=int, required=False)  # gpt = galaxy port
     args = parser.parse_args()
 
-    if args.port:
-        Config.STAR_PORT = args.port
+    if args.spt:
+        Config.STAR_PORT = args.spt
+
+    if args.gpt:
+        Config.GALAXY_PORT = args.gpt
 
     # Initialize Model, Services and Managers
     peer = Peer(Config.IP, Config.STAR_PORT)

@@ -1,4 +1,5 @@
 # Dockerfile  docker build -t vs:latest .
+# Beispiel mit Aufrufparametern: docker run -ti vs:latest -spt 8111
 FROM python:3.11-slim
 
 # Arbeitsverzeichnis setzen
