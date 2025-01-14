@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import threading
@@ -7,6 +8,7 @@ from random import randint
 import hashlib
 
 import requests
+#from flask import jsonify
 
 from app.config import Config
 from service.udp_service import UdpService
@@ -122,7 +124,7 @@ class PeerService:
         Initialisiert die Komponente als Mittelpunkt eines neuen Sterns (SOL).
         """
         com_uuid = UuidGenerator.generate_com_uuid()
-        star_uuid = self.generate_star_uuid(com_uuid)
+        star_uuid = UuidGenerator.generate_star_uuid(com_uuid)
         init_timestamp = datetime.now().isoformat()
 
         global_logger.info(
@@ -144,7 +146,7 @@ class PeerService:
         Send status to SOL and return the HTTP status code.
         """
         star = sol_data[Config.STAR_UUID_FIELD]
-        sol = sol_data[Config.COMPONENT_UUID_FIELD]
+        sol = sol_data[Config.SOL_UUID_FIELD]
         sol_ip = sol_data[Config.SOL_IP_FIELD]
         sol_tcp = sol_data[Config.SOL_TCP_FIELD]
 
@@ -161,24 +163,9 @@ class PeerService:
 
         return send_tcp_request("POST", sol_url, body=post_data, headers=headers)
 
-    def generate_com_uuid(self):
-        """
-        Generiert eine einzigartige vierstellige COM-UUID. TODO: Wird das hier überhaupt benutzt oder wird der generator benutzt?
-        """
-        while True:
-            com_uuid = randint(Config.UUID_MIN, Config.UUID_MAX)
-            if not self.sol_service or all(
-                comp["component"] != com_uuid
-                for comp in self.sol_service.registered_components
-            ):
-                return com_uuid
 
-    def generate_star_uuid(self, com_uuid):
-        """
-        Generiert die STAR-UUID basierend auf der IP-Adresse, dem SOL-ID und der COM-UUID. TODO: Wird das hier überhaupt benutzt oder wird der generator benutzt?
-        """
-        identifier = f"{self.peer.ip}{com_uuid}{com_uuid}".encode("utf-8")
-        return hashlib.md5(identifier).hexdigest()
+
+
 
     def send_status_update(self):
         """
@@ -194,12 +181,12 @@ class PeerService:
         }
 
         url = f"http://{self.peer.sol_connection.ip}:{self.peer.sol_connection.port}/vs/v1/system/{self.peer.com_uuid}"
-       # global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
+        global_logger.info(f"Preparing to send status update to {url} with payload: {payload}")
 
         try:
             response = requests.patch(url, json=payload, timeout=5)
             if response.status_code == 200:
-               # global_logger.info(f"Status update to SOL successful: {response.text}")
+                global_logger.info(f"Status update to SOL successful: {response.text}")
                 return True
             elif response.status_code == 401:
                 global_logger.warning(

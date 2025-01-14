@@ -70,6 +70,8 @@ def initialize_sol_endpoints(app, sol_service, message_service):
         """
         Retrieves the status of a registered peer.
         """
+        com_uuid = int(com_uuid)
+
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
         if not validate_star_uuid(star_uuid, sol_service.star_uuid):
@@ -96,6 +98,8 @@ def initialize_sol_endpoints(app, sol_service, message_service):
         """
         Unregisters a registered peer from the star.
         """
+        com_uuid = int(com_uuid)
+
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
         if not validate_star_uuid(star_uuid, sol_service.star_uuid):
             return error_response(f"Unauthorized unregister attempt with STAR UUID: {star_uuid}",
@@ -120,7 +124,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
     @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["PATCH"])
     def update_component_status(com_uuid):
         data = request.get_json()
-
+        com_uuid = int(com_uuid)
         # Validierung
         if data[Config.STAR_UUID_FIELD] != sol_service.star_uuid or data[Config.SOL_UUID_FIELD] != sol_service.sol_uuid:
             return error_response(
@@ -180,6 +184,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
     @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["DELETE"])
     def delete_message(msg_id):
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
+        msg_id = int(msg_id)
 
         if not validate_star_uuid(star_uuid, sol_service.star_uuid):
             return error_response(f"Unauthorized: Invalid STAR UUID {star_uuid}",
@@ -221,6 +226,8 @@ def initialize_sol_endpoints(app, sol_service, message_service):
 
     @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["GET"])
     def get_message(msg_id):
+        msg_id = int(msg_id)
+
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
 
         if not validate_star_uuid(star_uuid, sol_service.star_uuid):

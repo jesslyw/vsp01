@@ -1,5 +1,7 @@
 import random
 import hashlib
+from app.config import Config
+
 
 class UuidGenerator:
   
@@ -12,16 +14,16 @@ class UuidGenerator:
         COM-UUID is a 4-digit number (1000–9999) and must be unique.
         """
         while True:
-            com_uuid = str(random.randint(1000, 9999))
+            com_uuid = random.randint(1000, 9999)
             if com_uuid not in UuidGenerator.active_com_uuids:
                 UuidGenerator.active_com_uuids.add(com_uuid)
                 return com_uuid
 
     @staticmethod
-    def generate_star_uuid(sol_ip, sol_id, com_uuid):
+    def generate_star_uuid(com_uuid):
         """
         Generate a STAR-UUID using MD5 hash.
         Combines the SOL's IP address, ID, and COM-UUID.
         """
-        data = f"{sol_ip}-{sol_id}-{com_uuid}"
+        data = f"{Config.IP}-{Config.SOL_ID}-{com_uuid}"
         return str(hashlib.md5(data.encode('utf-8')).hexdigest())

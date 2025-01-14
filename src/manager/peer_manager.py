@@ -29,12 +29,10 @@ class PeerManager:
 
         # chose star, obtain response
         chosen_response, address = self.peerService.choose_sol(responses)
-
         # try to register
-        registration_response, status = self.peerService.request_registration_with_sol(
+        status = self.peerService.request_registration_with_sol(
             chosen_response
         )
-
         if status != 200:
             os.abort()  # exit program if registration fails
 
