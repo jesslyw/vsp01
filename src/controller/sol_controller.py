@@ -253,3 +253,32 @@ def initialize_sol_endpoints(app, sol_service, message_service):
             "totalResults": 1,
             "messages": [message.to_dict(view="header" if message.status == "active" else "id")],
         }), 200
+
+    @app.route(f"{Config.API_BASE_URL_STAR}", methods=["GET"])
+    def get_star_info(star_uuid):
+        """
+        Gibt Informationen zu einem spezifischen Stern aus.
+        """
+        if not validate_star_uuid(star_uuid, sol_service.star_uuid):
+            return error_response(f"STAR UUID {star_uuid} nicht bekannt", "STAR not found", 404)
+
+        return jsonify({
+            "star": star_uuid,
+            "sol": sol_service.peer.com_uuid,
+            "sol-ip": Config.IP,
+            "sol-tcp": sol_service.star_port,
+            "no-com": sol_service.num_active_com,
+            "status": "active"
+        }), 200
+
+    @app.route(f"{Config.API_BASE_URL_STAR}", methods=["GET"])
+    def list_all_stars():
+        """
+        Gibt alle bekannten Sterne und deren SOL-Komponenten aus.
+        """
+    stars = [star.to_dict() for star in sol_service.get_star_list()]
+
+    return jsonify({
+        "totalResults": len(stars),
+        "stars": stars
+    }), 200
