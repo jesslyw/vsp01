@@ -276,9 +276,9 @@ def initialize_sol_endpoints(app, sol_service, message_service):
         """
         Gibt alle bekannten Sterne und deren SOL-Komponenten aus.
         """
-    stars = [star.to_dict() for star in sol_service.get_star_list()]
+        stars = [star.to_dict() for star in sol_service.get_star_list()]
 
-    return jsonify({
-        "totalResults": len(stars),
-        "stars": stars
-    }), 200
+        return jsonify({
+            "totalResults": len(stars),
+            "stars": stars
+        }), 200

@@ -25,5 +25,5 @@ class UuidGenerator:
         Generate a STAR-UUID using MD5 hash.
         Combines the SOL's IP address, ID, and COM-UUID.
         """
-        data = f"{Config.IP}-{Config.SOL_ID}-{com_uuid}"
+        data = f"{Config.IP}-121-{com_uuid}"
         return str(hashlib.md5(data.encode('utf-8')).hexdigest())
