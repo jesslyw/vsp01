@@ -12,7 +12,7 @@ class PeerManager:
         self.is_sol = self.peerService.peer.is_sol
 
     def run_flask(self):
-        self.app.run(host=Config.IP, port=Config.STAR_PORT)
+        self.app.run(host="0.0.0.0", port=Config.STAR_PORT)
 
     """
     Übernimmt die Verwaltung der Verbindungen des Peers.
