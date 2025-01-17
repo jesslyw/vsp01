@@ -27,7 +27,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-spt', type=int, required=False)  # spt = star port
     parser.add_argument('-gid', type=int, required=False)  # gid = galaxy id
-    parser.add_argument('-ip', type=str, required=False)   # ip
+    parser.add_argument('-bc', type=str, required=False)   # ip
     args = parser.parse_args()
 
     if args.spt:
@@ -36,8 +36,12 @@ if __name__ == "__main__":
     if args.gid:
         Config.GALAXY_PORT = 8000 + args.gid
 
-    if args.ip:
-        Config.IP = args.ip
+    if args.bc:
+        #Config.IP = args.bc
+        param = args.bc.split('.')
+        Config.BROADCAST_ADDRESS = '.'.join(param[:3]) + ".255"
+        print(Config.BROADCAST_ADDRESS)
+
 
     # Initialize Model, Services and Managers
     peer = Peer(Config.IP, Config.STAR_PORT)

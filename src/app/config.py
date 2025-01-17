@@ -9,6 +9,7 @@ class Config:
     IP = socket.gethostbyname(socket.gethostname())
     API_BASE_URL = "/vs/v1/system/"
     API_BASE_URL_STAR= "/vs/v1/star/"
+    BROADCAST_ADDRESS = '<broadcast>'
 
     # UDP-Konfiguration
     TIMEOUT_LISTENING_FOR_UPD_RESPONSE = 5  # in Sekunden
