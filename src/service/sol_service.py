@@ -10,6 +10,8 @@ from service.udp_service import UdpService
 from utils.logger import global_logger
 from utils.uuid_generator import UuidGenerator
 
+from model.star import Star
+
 
 class SolService:
     def __init__(self, peer, star_port=None):
@@ -19,6 +21,7 @@ class SolService:
         self.star_port = star_port or Config.STAR_PORT
         self.num_active_components = 1
         self.sol = None
+        self.star_list=[]
 
 
     def listen_for_hello(self):
@@ -153,3 +156,18 @@ class SolService:
             f"Failed to unregister peer {peer.com_uuid} after {Config.UNREGISTER_RETRY_COUNT} attempts."
         )
         peer.status = "disconnected"
+
+
+    def add_star(self, star_uuid, sol_uuid, sol_ip, sol_tcp, no_com, status):
+        """
+        Fügt einen neuen Stern zur Starlist hinzu, wenn er noch nicht existiert.
+        """
+        if not any(existing_star.star_uuid == star_uuid for existing_star in self.star_list):
+            new_star = Star(star_uuid, sol_uuid, sol_ip, sol_tcp, no_com, status)
+            self.star_list.append(new_star)
+
+    def get_star_list(self):
+        """
+        Gibt die Liste aller bekannten Sterne zurück.
+        """
+        return self.star_list
