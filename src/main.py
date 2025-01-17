@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-spt', type=int, required=False)  # spt = star port
     parser.add_argument('-gid', type=int, required=False)  # gid = galaxy id
+    parser.add_argument('-ip', type=str, required=False)   # ip
     args = parser.parse_args()
 
     if args.spt:
@@ -34,6 +35,9 @@ if __name__ == "__main__":
 
     if args.gid:
         Config.GALAXY_PORT = 8000 + args.gid
+
+    if args.ip:
+        Config.IP = args.ip
 
     # Initialize Model, Services and Managers
     peer = Peer(Config.IP, Config.STAR_PORT)
