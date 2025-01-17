@@ -1,5 +1,6 @@
 import json
 import socket
+from app.config import Config
 
 '''
 stellt die funktionalitäten listen, broadcast message, send response über udp bereit 
@@ -12,11 +13,11 @@ class UdpService:
         """Broadcast a UDP message."""
         if len(message) > 1024:
             raise ValueError("Broadcast message exceeds max 1024 bytes.")
-
+        broadcast_address = Config.IP[:-3] + "255"
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         message = message.encode('utf-8') + b'\0'
-        udp_socket.sendto(message, ('<broadcast>', port))
+        udp_socket.sendto(message, (broadcast_address, port))
         udp_socket.close()
 
     @staticmethod
