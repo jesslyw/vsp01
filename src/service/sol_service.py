@@ -8,7 +8,7 @@ from flask import request
 import requests
 from app.config import Config
 from service.udp_service import UdpService
-from src.service.tcp_service import (
+from service.tcp_service import (
     send_tcp_request,
     send_tcp_request_and_get_response_body,
 )
