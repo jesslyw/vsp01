@@ -21,6 +21,7 @@ class Input_Reader:
                     user_input = input("Command> ").strip()
                     if user_input.upper() == "EXIT":                        
                         if self.component.is_sol:
+                            self.solService.unregister_at_galaxy()
                             self.solService.unregister_all_peers_and_exit()
                         else:
                             self.peerService.send_exit_request()

@@ -282,3 +282,36 @@ def initialize_sol_endpoints(app, sol_service, message_service):
             "totalResults": len(stars),
             "stars": stars
         }), 200
+
+    @app.route(f"{Config.API_BASE_URL}/<star_uuid>", methods=["DELETE"])
+    def unregister_star(star_uuid):
+        """
+        Endpunkt, um ein SOL bei einem Star abzumelden.
+        """
+        star = sol_service.get_star
+        #TODO active?? korekter status
+        if star is None or star.status != "active":
+            return error_response(
+                f"Unauthorized: STAR not registered {star_uuid}",
+                "Unauthorized: Invalid STAR.",
+                404
+            )
+
+        if not star.sol_ip == request.remote_addr:
+            return error_response(
+                f"Unauthorized: Incorrect STAR IP {star_uuid}",
+                "Unauthorized: Invalid STAR IP.",
+                401
+            )
+
+        # Logge die Abmeldung
+        global_logger.info(
+            f"Received unregister request for Star {star_uuid}."
+        )
+
+        # Führe Abmelde-Logik aus (falls erforderlich, z. B. Peer-Status ändern oder SOL entfernen)
+        star.status = "unregistered"
+
+        return jsonify({
+            "message": f"Star {star_uuid} successfully unregistered from STAR."
+        }), 200

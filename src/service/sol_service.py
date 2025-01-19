@@ -22,6 +22,7 @@ class SolService:
         self.num_active_components = 1
         self.sol = None
         self.star_list=[]
+        self.galaxy_lock = Lock()
 
 
     def listen_for_hello(self):
@@ -157,17 +158,64 @@ class SolService:
         )
         peer.status = "disconnected"
 
+    def unregister_at_galaxy(self):
+        global_logger.info("Unregistering from Galaxy...")
+        with self.galaxy_lock:
+            for star in self.star_list:
+                self._unregister_star(star)
+        global_logger.info("Succesfully unregistered from Galaxy...")
+
+    def _unregister_star(self, star):
+        """
+        Helper method to unregister a star.
+        """
+        url = f"http://{star.ip}:{Config.GALAXY_PORT}{Config.API_BASE_URL}{self.star_uuid}"
+        for attempt in range(Config.UNREGISTER_RETRY_COUNT):
+            try:
+                global_logger.info(
+                    f"Sending DELETE request to unregister star {self.star_uuid} at {url}"
+                )
+                response = requests.delete(url)
+                if response.status_code == 200:
+                    global_logger.info(f"Star {self.star_uuid} unregistered successfully at Star {star.star_uuid}.")
+                    return
+                elif response.status_code == 401 or response.status_code == 404:
+                    global_logger.warning(
+                        f"Unauthorized attempt to unregister at star {star.star_uuid}. Skipping."
+                    )
+                    return
+                else:
+                    global_logger.warning(
+                        f"Unexpected response from star {star.star_uuid}: {response.status_code}"
+                    )
+            except requests.RequestException as e:
+                global_logger.error(f"Failed to contact star {star.star_uuid}: {e}")
+
+            global_logger.warning(
+                f"Retrying DELETE request at star {star.star_uuid}... ({attempt + 1}/{Config.UNREGISTER_RETRY_COUNT})"
+            )
+            time.sleep(Config.UNREGISTER_RETRY_DELAY[attempt])
+
+        global_logger.error(
+            f"Failed to unregister at star {star.star_uuid} after {Config.UNREGISTER_RETRY_COUNT} attempts."
+        )
+
 
     def add_star(self, star_uuid, sol_uuid, sol_ip, sol_tcp, no_com, status):
         """
         Fügt einen neuen Stern zur Starlist hinzu, wenn er noch nicht existiert.
         """
-        if not any(existing_star.star_uuid == star_uuid for existing_star in self.star_list):
-            new_star = Star(star_uuid, sol_uuid, sol_ip, sol_tcp, no_com, status)
-            self.star_list.append(new_star)
+        with self.galaxy_lock:
+            if not any(existing_star.star_uuid == star_uuid for existing_star in self.star_list):
+                new_star = Star(star_uuid, sol_uuid, sol_ip, sol_tcp, no_com, status)
+                self.star_list.append(new_star)
 
     def get_star_list(self):
         """
         Gibt die Liste aller bekannten Sterne zurück.
         """
         return self.star_list
+
+    def get_star(self, star_uuid):
+        with self.galaxy_lock:
+            return next((star for star in self.star_list if star.star_uuid == star_uuid), None)
