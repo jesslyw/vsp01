@@ -18,14 +18,23 @@ class SolManager:
         sol_controller.initialize_sol_endpoints(
             self.app, self.sol_service, self.message_service
         )
-        flask_thread = threading.Thread(target=self.run_flask)
-        flask_thread.daemon = (
-            True  # This will ensure the thread ends when the main program ends
-        )
-        flask_thread.start()
+
+        self.run_flask()
+
 
     def run_flask(self):
-        self.app.run(host=Config.IP, port=Config.STAR_PORT)
+
+        flask_thread_1 = threading.Thread(target=self.run_flask_on_port, args=(Config.STAR_PORT,))
+        flask_thread_1.daemon = True  # Ensure thread ends when the main program ends
+        flask_thread_1.start()
+
+        flask_thread_2 = threading.Thread(target=self.run_flask_on_port, args=(Config.GALAXY_PORT,))
+        flask_thread_2.daemon = True  # Ensure thread ends when the main program ends
+        flask_thread_2.start()
+
+    def run_flask_on_port(self, port):
+        """Run the Flask app on a specific port."""
+        self.app.run(host=Config.IP, port=port)
 
     def manage(self):
 
@@ -33,7 +42,7 @@ class SolManager:
         try:
             # Start a thread to listen for HELLO? messages
             listener_thread = threading.Thread(
-                target=self.sol_service.listen_for_hello(Config.STAR_PORT)
+                target=self.sol_service.listen_for_hello, args=(Config.STAR_PORT,)
             )
             listener_thread.start()
         except Exception as e:
@@ -43,7 +52,7 @@ class SolManager:
         try:
             # Start a thread to listen for Galaxy HELLO? messages
             listener_thread = threading.Thread(
-                target=self.sol_service.listen_for_hello(Config.GALAXY_PORT)
+                target=self.sol_service.listen_for_hello, args=(Config.GALAXY_PORT,)
             )
             listener_thread.start()
         except Exception as e:
@@ -60,6 +69,7 @@ class SolManager:
 
         for attempt in range(Config.GALAXY_BROADCAST_RETRY_ATTEMPTS):
             # Broadcast Galaxy HELLO?
+            global_logger.info("Sending galaxy-broadcast...")
             try:
                 UdpService.broadcast_message(
                     Config.GALAXY_PORT, f"HELLO? I AM {self.sol_service.star_uuid}"

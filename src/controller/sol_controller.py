@@ -444,4 +444,4 @@ def initialize_sol_endpoints(app, sol_service, message_service):
 
         sol_service.add_star(star, sol, sol_ip, sol_tcp, no_com, status)
 
-        return jsonify({response}), 200
+        return jsonify(response), 200

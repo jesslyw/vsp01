@@ -8,7 +8,7 @@ from flask import request
 import requests
 from app.config import Config
 from service.udp_service import UdpService
-from src.service.tcp_service import (
+from service.tcp_service import (
     send_tcp_request,
     send_tcp_request_and_get_response_body,
 )
@@ -53,7 +53,10 @@ class SolService:
                     saved_star = self.get_star(star_uuid)
                     if saved_star is None:
                         # post schicken
-                        res_body = self.send_galaxy_post(saved_star)
+                        global_logger.info(f"Sending star-POST to {addr[0]}")
+                        res_body = self.send_galaxy_post(addr[0])
+                        if res_body is None:
+                            return
                         star = res_body.get("star")
                         sol = res_body.get("sol")
                         sol_ip = res_body.get("sol-ip")
@@ -77,8 +80,8 @@ class SolService:
         except Exception as e:
             global_logger.error(f"Error while listening for HELLO? messages: {e}")
 
-    def send_galaxy_post(self, saved_star):
-        saved_star_url = f"http://{saved_star.sol_ip}:{Config.GALAXY_PORT}/vs/v1/star"
+    def send_galaxy_post(self, addr):
+        saved_star_url = f"http://{addr}:{Config.GALAXY_PORT}/vs/v1/star"
 
         response = {
             "star": self.star_uuid,
@@ -233,7 +236,7 @@ class SolService:
         """
         Helper method to unregister a star.
         """
-        url = f"http://{star.ip}:{Config.GALAXY_PORT}{Config.API_BASE_URL}{self.star_uuid}"
+        url = f"http://{star.sol_ip}:{Config.GALAXY_PORT}{Config.API_BASE_URL}{self.star_uuid}"
         for attempt in range(Config.UNREGISTER_RETRY_COUNT):
             try:
                 global_logger.info(
@@ -276,6 +279,10 @@ class SolService:
             ):
                 new_star = Star(star_uuid, sol_uuid, sol_ip, sol_tcp, no_com, status)
                 self.star_list.append(new_star)
+                list_str = ""
+                for star in self.star_list:
+                    list_str += str(star.to_dict()) + "\n"
+                global_logger.info(f"Galaxy updated: \n{list_str}")
 
     def get_star_list(self):
         """

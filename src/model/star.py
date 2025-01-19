@@ -16,3 +16,6 @@ class Star:
             "no-com": self.no_com,
             "status": self.status
         }
+
+    def __str__(self):
+        return self.to_dict()
