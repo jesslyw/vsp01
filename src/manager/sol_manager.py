@@ -1,8 +1,10 @@
 import threading
+import time
 from app.config import Config
 from controller import sol_controller
 from utils.logger import global_logger
 from service.message_service import MessageService
+from service.udp_service import UdpService
 
 
 class SolManager:
@@ -13,7 +15,9 @@ class SolManager:
         self.message_service = MessageService()
 
         # initialize sol endpoints and start flask server in a new thread
-        sol_controller.initialize_sol_endpoints(self.app, self.sol_service, self.message_service)
+        sol_controller.initialize_sol_endpoints(
+            self.app, self.sol_service, self.message_service
+        )
         flask_thread = threading.Thread(target=self.run_flask)
         flask_thread.daemon = (
             True  # This will ensure the thread ends when the main program ends
@@ -28,10 +32,22 @@ class SolManager:
         # setting up a thread to listen for Hello?-messages
         try:
             # Start a thread to listen for HELLO? messages
-            listener_thread = threading.Thread(target=self.sol_service.listen_for_hello)
+            listener_thread = threading.Thread(
+                target=self.sol_service.listen_for_hello(Config.STAR_PORT)
+            )
             listener_thread.start()
         except Exception as e:
             global_logger.error(f"Failed to start listener thread: {e}")
+
+        # setting up a thread to listen for Galaxy Hello?-messages
+        try:
+            # Start a thread to listen for Galaxy HELLO? messages
+            listener_thread = threading.Thread(
+                target=self.sol_service.listen_for_hello(Config.GALAXY_PORT)
+            )
+            listener_thread.start()
+        except Exception as e:
+            global_logger.error(f"Failed to start galaxy listener thread: {e}")
 
         try:
             # Start a thread for health checks
@@ -41,3 +57,17 @@ class SolManager:
             health_check_thread.start()
         except Exception as e:
             global_logger.error(f"Failed to start health-check thread: {e}")
+
+        for attempt in range(Config.GALAXY_BROADCAST_RETRY_ATTEMPTS):
+            # Broadcast Galaxy HELLO?
+            try:
+                UdpService.broadcast_message(
+                    Config.GALAXY_PORT, f"HELLO? I AM {self.sol_service.star_uuid}"
+                )
+            except Exception as e:
+                global_logger.error(
+                    f"Failed to broadcast Galaxy HELLO?: {self.sol_service.star_uuid}"
+                )
+                continue
+
+            time.sleep(4)

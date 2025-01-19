@@ -4,9 +4,14 @@ import threading
 import time
 from datetime import datetime
 from threading import Lock
+from flask import request
 import requests
 from app.config import Config
 from service.udp_service import UdpService
+from src.service.tcp_service import (
+    send_tcp_request,
+    send_tcp_request_and_get_response_body,
+)
 from utils.logger import global_logger
 from utils.uuid_generator import UuidGenerator
 
@@ -21,27 +26,86 @@ class SolService:
         self.star_port = star_port or Config.STAR_PORT
         self.num_active_components = 1
         self.sol = None
-        self.star_list=[]
+        self.star_list = []
         self.galaxy_lock = Lock()
 
-
-    def listen_for_hello(self):
+    def listen_for_hello(self, port):
         """Listens for HELLO? messages and responds with the required JSON blob."""
         global_logger.info("SOL is listening for HELLO? messages...")
+
         try:
+
             def handle_message(message, addr):
+                parts = message.strip().split()
                 if message.strip() == "HELLO?":
                     global_logger.info(f"Received HELLO? from {addr[0]}:{addr[1]}")
                     self.send_response(addr[0], Config.STAR_PORT)
+
+                elif (
+                    len(parts) == 4
+                    and parts[0] == "HELLO?"
+                    and parts[1] == "I"
+                    and parts[2] == "AM"
+                ):
+                    star_uuid = parts[3]
+                    global_logger.info(f"Received HELLO? from {addr[0]}:{addr[1]}")
+                    # ist star uid bekannt?
+                    saved_star = self.get_star(star_uuid)
+                    if saved_star is None:
+                        # post schicken
+                        res_body = self.send_galaxy_post(saved_star)
+                        star = res_body.get("star")
+                        sol = res_body.get("sol")
+                        sol_ip = res_body.get("sol-ip")
+                        sol_tcp = res_body.get("sol-tcp")
+                        no_com = res_body.get("no-com")
+                        status = res_body.get("status")
+                        self.add_star(star, sol, sol_ip, sol_tcp, no_com, status)
+                    else:
+                        if (
+                            saved_star.sol_ip == request.remote_addr
+                        ):  # star schon bekannt und ip stimmt
+                            # patch schicken
+                            self.send_galaxy_patch(saved_star)
                 else:
                     global_logger.warning(
                         f"Unexpected message from {addr[0]}:{addr[1]}: {message}"
                     )
 
-            UdpService.listen(Config.STAR_PORT, callback=handle_message)
+            UdpService.listen(port, callback=handle_message)
 
         except Exception as e:
             global_logger.error(f"Error while listening for HELLO? messages: {e}")
+
+    def send_galaxy_post(self, saved_star):
+        saved_star_url = f"http://{saved_star.sol_ip}:{Config.GALAXY_PORT}/vs/v1/star"
+
+        response = {
+            "star": self.star_uuid,
+            "sol": self.sol_uuid,
+            "sol-ip": Config.IP,
+            "sol-tcp": self.star_port,
+            "no-com": self.sol.num_active_components,
+            "status": 200,
+        }
+        headers = {"Content-Type": "application/json"}
+        return send_tcp_request_and_get_response_body(
+            "POST", saved_star_url, body=response, headers=headers
+        )
+
+    def send_galaxy_patch(self, saved_star):
+        saved_star_url = f"http://{saved_star.sol_ip}:{Config.GALAXY_PORT}/vs/v1/star/{self.star_uuid}"
+
+        response = {
+            "star": self.star_uuid,
+            "sol": self.sol_uuid,
+            "sol-ip": Config.IP,
+            "sol-tcp": self.star_port,
+            "no-com": self.sol.num_active_components,
+            "status": 200,
+        }
+        headers = {"Content-Type": "application/json"}
+        return send_tcp_request("PATCH", saved_star_url, body=response, headers=headers)
 
     def send_response(self, target_ip, target_port):
         """Send the JSON blob response to the sender of the HELLO? message."""
@@ -177,7 +241,9 @@ class SolService:
                 )
                 response = requests.delete(url)
                 if response.status_code == 200:
-                    global_logger.info(f"Star {self.star_uuid} unregistered successfully at Star {star.star_uuid}.")
+                    global_logger.info(
+                        f"Star {self.star_uuid} unregistered successfully at Star {star.star_uuid}."
+                    )
                     return
                 elif response.status_code == 401 or response.status_code == 404:
                     global_logger.warning(
@@ -200,13 +266,14 @@ class SolService:
             f"Failed to unregister at star {star.star_uuid} after {Config.UNREGISTER_RETRY_COUNT} attempts."
         )
 
-
     def add_star(self, star_uuid, sol_uuid, sol_ip, sol_tcp, no_com, status):
         """
         Fügt einen neuen Stern zur Starlist hinzu, wenn er noch nicht existiert.
         """
         with self.galaxy_lock:
-            if not any(existing_star.star_uuid == star_uuid for existing_star in self.star_list):
+            if not any(
+                existing_star.star_uuid == star_uuid for existing_star in self.star_list
+            ):
                 new_star = Star(star_uuid, sol_uuid, sol_ip, sol_tcp, no_com, status)
                 self.star_list.append(new_star)
 
@@ -218,4 +285,6 @@ class SolService:
 
     def get_star(self, star_uuid):
         with self.galaxy_lock:
-            return next((star for star in self.star_list if star.star_uuid == star_uuid), None)
+            return next(
+                (star for star in self.star_list if star.star_uuid == star_uuid), None
+            )

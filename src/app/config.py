@@ -8,7 +8,7 @@ class Config:
     GALAXY_PORT = 8000
     IP = socket.gethostbyname(socket.gethostname())
     API_BASE_URL = "/vs/v1/system/"
-    API_BASE_URL_STAR= "/vs/v1/star/"
+    API_BASE_URL_STAR = "/vs/v1/star/"
 
     # UDP-Konfiguration
     TIMEOUT_LISTENING_FOR_UPD_RESPONSE = 5  # in Sekunden
@@ -16,6 +16,7 @@ class Config:
     # Broadcast-Konfiguration
     BROADCAST_INTERVAL = 5  # Interval in Sekunden für Broadcasts
     BROADCAST_RETRY_ATTEMPTS = 2  # Anzahl der Widerholungen für HALLO?
+    GALAXY_BROADCAST_RETRY_ATTEMPTS = 2
 
     # Stern- und Komponenten-Konfiguration
     MAX_COMPONENTS = 4  # Maximale Anzahl an Komponenten in einem Stern
