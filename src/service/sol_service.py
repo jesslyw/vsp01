@@ -230,7 +230,7 @@ class SolService:
         global_logger.info("Unregistering from Galaxy...")
         with self.galaxy_lock:
             for star in self.star_list:
-                if star.status != 200 or star.status != '200':
+                if star.status != 200 and star.status != '200':
                     continue
                 self._unregister_star(star)
         global_logger.info("Succesfully unregistered from Galaxy...")
