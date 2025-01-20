@@ -394,7 +394,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
         Endpunkt, um ein SOL bei einem Star abzumelden.
         """
         star = sol_service.get_star(star_uuid)
-        if star is None or star.status != 200:
+        if star is None or star.status != 200 and star.status != '200':
             return error_response(
                 f"Unauthorized: STAR not registered {star_uuid}",
                 "Unauthorized: Invalid STAR.",
