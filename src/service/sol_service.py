@@ -50,7 +50,8 @@ class SolService:
                     star_uuid = parts[3]
                     global_logger.info(f"Received HELLO? from {addr[0]}:{addr[1]}")
                     # ist star uid bekannt?
-                    saved_star = self.get_star(star_uuid)
+                    with self.galaxy_lock:
+                        saved_star = self.get_star(star_uuid)
                     if saved_star is None:
                         # post schicken
                         global_logger.info(f"Sending star-POST to {addr[0]}")
@@ -66,10 +67,10 @@ class SolService:
                         self.add_star(star, sol, sol_ip, sol_tcp, no_com, status)
                     else:
                         if (
-                            saved_star.sol_ip == request.remote_addr
+                            saved_star.sol_ip == addr[0]
                         ):  # star schon bekannt und ip stimmt
                             # patch schicken
-                            self.send_galaxy_patch(saved_star)
+                            self.send_galaxy_patch(addr[0])
                 else:
                     global_logger.warning(
                         f"Unexpected message from {addr[0]}:{addr[1]}: {message}"
@@ -96,8 +97,8 @@ class SolService:
             "POST", saved_star_url, body=response, headers=headers
         )
 
-    def send_galaxy_patch(self, saved_star):
-        saved_star_url = f"http://{saved_star.sol_ip}:{Config.GALAXY_PORT}/vs/v1/star/{self.star_uuid}"
+    def send_galaxy_patch(self, addr):
+        saved_star_url = f"http://{addr}:{Config.GALAXY_PORT}/vs/v1/star/{self.star_uuid}"
 
         response = {
             "star": self.star_uuid,
@@ -236,7 +237,7 @@ class SolService:
         """
         Helper method to unregister a star.
         """
-        url = f"http://{star.sol_ip}:{Config.GALAXY_PORT}{Config.API_BASE_URL}{self.star_uuid}"
+        url = f"http://{star.sol_ip}:{Config.GALAXY_PORT}{Config.API_BASE_URL_STAR}{self.star_uuid}"
         for attempt in range(Config.UNREGISTER_RETRY_COUNT):
             try:
                 global_logger.info(
@@ -283,6 +284,9 @@ class SolService:
                 for star in self.star_list:
                     list_str += str(star.to_dict()) + "\n"
                 global_logger.info(f"Galaxy updated: \n{list_str}")
+            else:
+                old_entry = self.get_star(star_uuid)
+                old_entry.status = status
 
     def get_star_list(self):
         """
@@ -291,7 +295,7 @@ class SolService:
         return self.star_list
 
     def get_star(self, star_uuid):
-        with self.galaxy_lock:
-            return next(
-                (star for star in self.star_list if star.star_uuid == star_uuid), None
-            )
+
+        return next(
+            (star for star in self.star_list if star.star_uuid == star_uuid), None
+        )

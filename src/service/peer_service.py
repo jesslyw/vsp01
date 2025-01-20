@@ -137,6 +137,7 @@ class PeerService:
         self.peer.com_uuid = com_uuid
         self.sol_service.sol = SOL(self.peer.com_uuid, star_uuid)
         sol_manager = SolManager(self.sol_service, app)
+        time.sleep(2)
         sol_thread = threading.Thread(target=sol_manager.manage())
         sol_thread.start()
         sys.exit()

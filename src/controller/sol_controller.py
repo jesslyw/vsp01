@@ -388,14 +388,13 @@ def initialize_sol_endpoints(app, sol_service, message_service):
 
         return jsonify({"totalResults": len(stars), "stars": stars}), 200
 
-    @app.route(f"{Config.API_BASE_URL}/<star_uuid>", methods=["DELETE"])
+    @app.route(f"{Config.API_BASE_URL_STAR}<star_uuid>", methods=["DELETE"])
     def unregister_star(star_uuid):
         """
         Endpunkt, um ein SOL bei einem Star abzumelden.
         """
-        star = sol_service.get_star
-        # TODO active?? korekter status
-        if star is None or star.status != "active":
+        star = sol_service.get_star(star_uuid)
+        if star is None or star.status != 200:
             return error_response(
                 f"Unauthorized: STAR not registered {star_uuid}",
                 "Unauthorized: Invalid STAR.",
@@ -422,8 +421,8 @@ def initialize_sol_endpoints(app, sol_service, message_service):
             200,
         )
 
-    @app.route(f"{Config.API_BASE_URL_STAR}", methods=["POST", "PATCH"])
-    def handle_galaxy_star_update():
+    @app.route(f"{Config.API_BASE_URL_STAR}", methods=["POST"])
+    def handle_galaxy_star_entry():
         data = request.get_json()
 
         response = {
@@ -445,3 +444,17 @@ def initialize_sol_endpoints(app, sol_service, message_service):
         sol_service.add_star(star, sol, sol_ip, sol_tcp, no_com, status)
 
         return jsonify(response), 200
+
+    @app.route(f"{Config.API_BASE_URL_STAR}<star_uuid>", methods=["PATCH"])
+    def handle_galaxy_star_update(star_uuid):
+        data = request.get_json()
+
+        sol = data.get("sol")
+        sol_ip = data.get("sol-ip")
+        sol_tcp = data.get("sol-tcp")
+        no_com = data.get("no-com")
+        status = data.get("status")
+
+        sol_service.add_star(star_uuid, sol, sol_ip, sol_tcp, no_com, status)
+
+        return jsonify("Patch successful"), 200
