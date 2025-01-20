@@ -86,7 +86,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
             200,
         )
 
-    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
+    @app.route(f"{Config.API_BASE_URL}/<com_uuid>", methods=["GET"])
     def get_component_status(com_uuid):
         """
         Retrieves the status of a registered peer.
@@ -125,7 +125,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
             200,
         )
 
-    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["DELETE"])
+    @app.route(f"{Config.API_BASE_URL}/<com_uuid>", methods=["DELETE"])
     def unregister_component(com_uuid):
         """
         Unregisters a registered peer from the star.
@@ -162,7 +162,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
         global_logger.info(f"Component {com_uuid} unregistered successfully.")
         return "ok", 200
 
-    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["PATCH"])
+    @app.route(f"{Config.API_BASE_URL}/<com_uuid>", methods=["PATCH"])
     def update_component_status(com_uuid):
         data = request.get_json()
         com_uuid = int(com_uuid)
@@ -200,7 +200,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
         return jsonify({"message": "Status updated successfully"}), 200
 
     # TODO: Funktioniert aktuell komplett unabhängig von SOL. In der Aufgabe steht aber, dass nur SOL das kann, also eventuell sol_service.message_service?
-    @app.route(f"{Config.API_BASE_URL}messages", methods=["POST"])
+    @app.route(f"{Config.API_BASE_URL}/messages", methods=["POST"])
     def create_message():
         data = request.get_json()
         star_uuid = data.get(Config.STAR_UUID_FIELD)
@@ -246,7 +246,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
 
         return jsonify({"msg-id": msg_id}), 200
 
-    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["DELETE"])
+    @app.route(f"{Config.API_BASE_URL}/messages/<msg_id>", methods=["DELETE"])
     def delete_message(msg_id):
         star_uuid = request.args.get(Config.STAR_UUID_FIELD)
         msg_id = int(msg_id)
@@ -303,7 +303,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
             200,
         )
 
-    @app.route(f"{Config.API_BASE_URL}messages/<msg_id>", methods=["GET"])
+    @app.route(f"{Config.API_BASE_URL}/messages/<msg_id>", methods=["GET"])
     def get_message(msg_id):
         msg_id = int(msg_id)
 
@@ -388,7 +388,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
 
         return jsonify({"totalResults": len(stars), "stars": stars}), 200
 
-    @app.route(f"{Config.API_BASE_URL_STAR}<star_uuid>", methods=["DELETE"])
+    @app.route(f"{Config.API_BASE_URL_STAR}/<star_uuid>", methods=["DELETE"])
     def unregister_star(star_uuid):
         """
         Endpunkt, um ein SOL bei einem Star abzumelden.
@@ -445,7 +445,7 @@ def initialize_sol_endpoints(app, sol_service, message_service):
 
         return jsonify(response), 200
 
-    @app.route(f"{Config.API_BASE_URL_STAR}<star_uuid>", methods=["PATCH"])
+    @app.route(f"{Config.API_BASE_URL_STAR}/<star_uuid>", methods=["PATCH"])
     def handle_galaxy_star_update(star_uuid):
         data = request.get_json()
 

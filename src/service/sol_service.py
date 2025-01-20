@@ -239,7 +239,7 @@ class SolService:
         """
         Helper method to unregister a star.
         """
-        url = f"http://{star.sol_ip}:{Config.GALAXY_PORT}{Config.API_BASE_URL_STAR}{self.star_uuid}"
+        url = f"http://{star.sol_ip}:{Config.GALAXY_PORT}{Config.API_BASE_URL_STAR}/{self.star_uuid}"
         for attempt in range(Config.UNREGISTER_RETRY_COUNT):
             try:
                 global_logger.info(

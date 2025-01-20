@@ -18,7 +18,7 @@ def initialize_peer_endpoints(app, peer_service):
     def validate_star_uuid(star_uuid, expected_star_uuid):
         return star_uuid == expected_star_uuid
 
-    @app.route(f"{Config.API_BASE_URL}<com_uuid>", methods=["GET"])
+    @app.route(f"{Config.API_BASE_URL}/<com_uuid>", methods=["GET"])
     def get_status(com_uuid):
         """
                 Retrieves the status of the peer based on the com_uuid.
@@ -47,7 +47,7 @@ def initialize_peer_endpoints(app, peer_service):
             "status": peer_service.peer.status,
         }), 200
 
-    @app.route(f"{Config.API_BASE_URL}<req_com_uuid>", methods=["DELETE"])
+    @app.route(f"{Config.API_BASE_URL}/<req_com_uuid>", methods=["DELETE"])
     def accept_sol_shutdown(req_com_uuid):
         req_star_uuid = request.args.get("star")
         req_com_uuid = int(req_com_uuid)

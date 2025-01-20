@@ -7,8 +7,8 @@ class Config:
     STAR_PORT = 8121
     GALAXY_PORT = 8000
     IP = socket.gethostbyname(socket.gethostname())
-    API_BASE_URL = "/vs/v1/system/"
-    API_BASE_URL_STAR = "/vs/v1/star/"
+    API_BASE_URL = "/vs/v1/system"
+    API_BASE_URL_STAR = "/vs/v1/star"
 
     # UDP-Konfiguration
     TIMEOUT_LISTENING_FOR_UPD_RESPONSE = 5  # in Sekunden

@@ -151,7 +151,7 @@ class PeerService:
         sol_ip = sol_data[Config.SOL_IP_FIELD]
         sol_tcp = sol_data[Config.SOL_TCP_FIELD]
 
-        sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system/"
+        sol_url = f"http://{sol_ip}:{sol_tcp}/vs/v1/system"
         post_data = {
             "star": star,
             "sol": sol,
